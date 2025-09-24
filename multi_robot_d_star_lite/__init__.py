@@ -7,7 +7,7 @@ with collision detection on a 2D grid.
 from .world import GridWorld, CellType
 from .dstar_lite import DStarLite
 from .coordinator import MultiAgentCoordinator
-from .visualizer import Visualizer
+from .visualizer import GridVisualizer
 from .simple_visualizer import SimpleVisualizer
 
 __version__ = "1.0.0"
@@ -17,6 +17,6 @@ __all__ = [
     "CellType",
     "DStarLite",
     "MultiAgentCoordinator",
-    "Visualizer",
+    "GridVisualizer",
     "SimpleVisualizer"
 ]

@@ -49,7 +49,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "multi-robot-demo=main:main",
+            "multi-robot-demo=multi_robot_d_star_lite.__main__:main",
         ],
     },
 )
