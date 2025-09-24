@@ -133,6 +133,21 @@ class MultiAgentCoordinator:
 
             # Recompute path
             success, reason = planner.compute_shortest_path()
+
+            # If no_path_exists, try a complete replan from scratch to escape local minima
+            if not success and reason == "no_path_exists (goal unreachable)":
+                print(f"Robot {robot_id}: no path found, attempting complete replan...")
+                # Reinitialize the planner completely
+                current_pos = self.current_positions[robot_id]
+                goal = self.goals[robot_id]
+                planner.initialize(current_pos, goal)
+                # Try again with fresh state
+                success, reason = planner.compute_shortest_path()
+                if success:
+                    print(f"Robot {robot_id}: Complete replan successful!")
+                else:
+                    print(f"Robot {robot_id}: Complete replan also failed - {reason}")
+
             if success:
                 new_path = planner.get_path()
                 if new_path:

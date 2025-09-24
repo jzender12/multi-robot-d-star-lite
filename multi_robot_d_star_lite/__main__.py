@@ -23,12 +23,18 @@ def main():
     print("Initializing 10x10 grid world...")
     world = GridWorld(10, 10)
 
-    # Add some initial obstacles to make it interesting
-    # Create a small maze-like environment
+    # Add obstacles based on the specified configuration
+    # Based on the grid:
+    # Row 2 (y=2): obstacle at column 6 (x=6)
+    # Row 3-4 (y=3,4): obstacles at column 3 and 6
+    # Row 5 (y=5): obstacle at column 3
+    # Row 7 (y=7): full horizontal wall from column 1-9
     obstacles = [
-        (3, 3), (3, 4), (3, 5),  # Vertical wall
-        (6, 2), (6, 3), (6, 4),  # Another vertical wall
-        (1, 7), (2, 7), (3, 7), (4, 7),  # Horizontal wall
+        # Vertical walls
+        (6, 2), (6, 3), (6, 4),  # Right vertical wall
+        (3, 3), (3, 4), (3, 5),  # Left vertical wall
+        # Horizontal wall at row 7 (complete line)
+        (1, 7), (2, 7), (3, 7), (4, 7), (5, 7), (6, 7), (7, 7), (8, 7), (9, 7),
     ]
 
     for x, y in obstacles:
@@ -38,11 +44,11 @@ def main():
     print("Initializing multi-agent coordinator...")
     coordinator = MultiAgentCoordinator(world)
 
-    # Add two robots with different start/goal positions
-    # Robot 1: Top-left to bottom-right
+    # Add two robots with the specified positions from the grid
+    # Robot 1: Start at (1, 1) marked as "1", Goal at (8, 8) marked as "A"
     coordinator.add_robot("robot1", start=(1, 1), goal=(8, 8))
 
-    # Robot 2: Top-right to bottom-left
+    # Robot 2: Start at (8, 1) marked as "2", Goal at (1, 8) marked as "B"
     coordinator.add_robot("robot2", start=(8, 1), goal=(1, 8))
 
     # Initial path computation
