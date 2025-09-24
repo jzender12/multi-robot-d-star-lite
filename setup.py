@@ -14,7 +14,7 @@ setup(
     description="Multi-Robot D* Lite Path Planning System with collision detection",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/multi-robot-d-star-lite",
+    url="https://github.com/jzender12/multi-robot-d-star-lite",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",

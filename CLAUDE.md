@@ -100,7 +100,7 @@ Interactive features:
 sudo apt-get install python3-venv python3-pip
 
 # Clone and setup
-git clone https://github.com/yourusername/multi-robot-d-star-lite.git
+git clone https://github.com/jzender12/multi-robot-d-star-lite.git
 cd multi-robot-d-star-lite
 
 # Install package in development mode

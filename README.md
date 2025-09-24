@@ -1,6 +1,6 @@
 # Multi-Robot D* Lite Path Planning
 
-[![CI](https://github.com/yourusername/multi-robot-d-star-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/multi-robot-d-star-lite/actions/workflows/ci.yml)
+[![CI](https://github.com/jzender12/multi-robot-d-star-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/jzender12/multi-robot-d-star-lite/actions/workflows/ci.yml)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -25,7 +25,7 @@ A Python implementation of the D* Lite algorithm for multi-robot path planning w
 The easiest way to run the demo is using the provided development script:
 
 ```bash
-git clone https://github.com/yourusername/multi-robot-d-star-lite.git
+git clone https://github.com/jzender12/multi-robot-d-star-lite.git
 cd multi-robot-d-star-lite
 ./run_dev.sh python main.py
 ```
@@ -40,7 +40,7 @@ The `run_dev.sh` script automatically:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/multi-robot-d-star-lite.git
+git clone https://github.com/jzender12/multi-robot-d-star-lite.git
 cd multi-robot-d-star-lite
 
 # Create virtual environment
