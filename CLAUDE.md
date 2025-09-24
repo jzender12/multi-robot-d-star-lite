@@ -43,6 +43,7 @@ multi-robot-d-star-lite/
 │   ├── requirements.txt        # Test-specific dependencies
 │   ├── test_world.py           # Grid world functionality tests
 │   ├── test_collision.py       # Collision detection tests (formerly test_all.py)
+│   ├── test_placement_validation.py  # Placement validation tests
 │   ├── test_export.py          # Export/import test
 │   └── fixtures/
 │       └── test_cases.txt      # Visual test cases for all tests
@@ -83,15 +84,22 @@ Key methods:
   3. **Shear collisions**: Perpendicular crossing (one enters as another exits)
   - Note: Robots moving in the same direction (series/convoy) are correctly allowed
 - `step_simulation()`: Moves robots and reports collisions without auto-resolution
-- `set_new_goal()`: Allows dynamic goal changes during execution
+- `set_new_goal()`: Sets new goal with validation:
+  - Returns `True` if successful, `False` if invalid
+  - Prevents goals on obstacles
+  - Prevents multiple robots having same goal
 
-### Visualization (visualizer.py & main.py)
+### Visualization (visualizer.py & __main__.py)
 Interactive features:
 - **Start paused**: Shows initial setup with clear "PAUSED" overlay
 - **Dynamic goal setting**: While paused, click robot then click to set new goal
-- **Obstacle manipulation**: Click to add/remove obstacles
-- **Real-time replanning**: Press SPACE for dynamic obstacle demo
+- **Obstacle manipulation**: Click to add/remove obstacles with validation
+- **Placement validation**: Prevents invalid placements:
+  - Cannot place obstacles on robots or goals
+  - Cannot place goals on obstacles or other robot goals
 - **Visual feedback**: Selected robots highlighted, paths shown in different colors
+
+**Note**: `main.py` now simply imports from `__main__.py` to avoid code duplication
 
 ## Installation and Setup
 
@@ -111,10 +119,10 @@ cd multi-robot-d-star-lite
 
 ```bash
 # Run the main demo
-./run_dev.sh python main.py
+./run_dev.sh python3 main.py
 
 # Alternative: After installation
-python main.py
+python3 main.py
 ```
 
 ## Running Tests
@@ -135,16 +143,20 @@ python main.py
 
 ## Controls
 
-- **P**: Pause/Resume simulation
+- **SPACE**: Pause/Resume simulation
 - **While paused**:
   - Click robot to select (yellow highlight)
-  - Click empty cell to set new goal (auto-resumes)
+  - Click empty cell to set new goal
   - Click to add/remove obstacles
+  - **C**: Copy current grid state to clipboard
 - **While running**:
-  - SPACE: Add obstacle at (5,5)
-  - R: Remove obstacle at (5,5)
   - Click: Add/remove obstacles
 - **Q**: Quit
+
+**Validation**: The system prevents invalid placements:
+- Cannot place obstacles on robots or goals
+- Cannot place goals on obstacles
+- Cannot have two robots with the same goal
 
 ## Using run_dev.sh
 
@@ -203,7 +215,11 @@ During simulation, press 'C' when paused to copy the current grid state to clipb
    - Swap: Robots exchanging positions
    - Shear: Perpendicular crossing where one robot enters a cell another is leaving
 3. **Collision Response**: Simulation PAUSES when collision detected, displaying the specific collision type
-4. **Dynamic Updates**: When obstacles change, D* Lite efficiently replans using incremental updates
+4. **Placement Validation**: Prevents invalid configurations:
+   - Goals cannot be placed on obstacles
+   - Multiple robots cannot have the same goal
+   - Obstacles cannot be placed on robots or goals
+5. **Dynamic Updates**: When obstacles change, D* Lite efficiently replans using incremental updates
 
 ## Key Insights from Development
 

@@ -39,7 +39,7 @@ The easiest way for development is using the provided script:
 ```bash
 git clone https://github.com/jzender12/multi-robot-d-star-lite.git
 cd multi-robot-d-star-lite
-./run_dev.sh python main.py
+./run_dev.sh python3 main.py
 ```
 
 The `run_dev.sh` script automatically:
@@ -79,7 +79,7 @@ After installation, you can run the demo in several ways:
 python -m multi_robot_d_star_lite
 
 # If cloned for development
-./run_dev.sh python main.py
+./run_dev.sh python3 main.py
 ```
 
 ### Using in Your Own Python Code
@@ -109,17 +109,20 @@ should_continue, collision = coordinator.step_simulation()
 
 #### Controls
 
-- **P**: Pause/Resume simulation
+- **SPACE**: Pause/Resume simulation
 - **While paused**:
   - Click robot to select (yellow highlight)
-  - Click empty cell to set new goal (auto-resumes)
+  - Click empty cell to set new goal
   - Click to add/remove obstacles
+  - **C**: Copy grid state to clipboard for test cases
 - **While running**:
-  - **SPACE**: Add obstacle at (5,5)
-  - **R**: Remove obstacle at (5,5)
   - Click to add/remove obstacles dynamically
-- **C** (while paused): Copy grid state to clipboard for test cases
 - **Q**: Quit
+
+**Note**: The system prevents invalid placements:
+- Cannot place obstacles on robots or goals
+- Cannot place goals on obstacles
+- Cannot have two robots with the same goal
 
 ### Running Tests
 
