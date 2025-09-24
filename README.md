@@ -20,9 +20,21 @@ A Python implementation of the D* Lite algorithm for multi-robot path planning w
 
 ## Installation
 
-### Quick Start with run_dev.sh
+### Method 1: Install from GitHub with pip (Recommended for Users)
 
-The easiest way to run the demo is using the provided development script:
+Install directly from GitHub without cloning:
+
+```bash
+# Install the package and all dependencies
+pip install git+https://github.com/jzender12/multi-robot-d-star-lite.git
+
+# Run the demo as a Python module
+python -m multi_robot_d_star_lite
+```
+
+### Method 2: Clone and Use run_dev.sh (Recommended for Development)
+
+The easiest way for development is using the provided script:
 
 ```bash
 git clone https://github.com/jzender12/multi-robot-d-star-lite.git
@@ -36,7 +48,7 @@ The `run_dev.sh` script automatically:
 - Runs your command
 - Cleans up on exit
 
-### Manual Installation
+### Method 3: Manual Installation (For Development)
 
 ```bash
 # Clone the repository
@@ -47,19 +59,52 @@ cd multi-robot-d-star-lite
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install package
+# Install package in editable mode
 pip install -e .
 
 # Run the demo
 python main.py
+# Or as a module
+python -m multi_robot_d_star_lite
 ```
 
 ## Usage
 
 ### Running the Interactive Demo
 
+After installation, you can run the demo in several ways:
+
 ```bash
+# If installed from GitHub with pip
+python -m multi_robot_d_star_lite
+
+# If cloned for development
 ./run_dev.sh python main.py
+```
+
+### Using in Your Own Python Code
+
+```python
+from multi_robot_d_star_lite import GridWorld, DStarLite, MultiAgentCoordinator
+
+# Create a 10x10 grid world
+world = GridWorld(10, 10)
+
+# Add obstacles
+world.add_obstacle(5, 5)
+
+# Create coordinator for multi-robot planning
+coordinator = MultiAgentCoordinator(world)
+
+# Add robots with start and goal positions
+coordinator.add_robot("robot1", start=(0, 0), goal=(9, 9))
+coordinator.add_robot("robot2", start=(9, 0), goal=(0, 9))
+
+# Compute paths
+coordinator.recompute_paths()
+
+# Step through simulation
+should_continue, collision = coordinator.step_simulation()
 ```
 
 #### Controls
