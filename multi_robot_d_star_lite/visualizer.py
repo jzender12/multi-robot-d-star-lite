@@ -174,7 +174,7 @@ class GridVisualizer:
             info_surface.blit(info, (150, 15))
 
         # Controls hint
-        controls = self.small_font.render("P: Pause | When paused: Click robot → Click to set goal | Q: Quit",
+        controls = self.small_font.render("SPACE: Pause | When paused: Click robot → Click to set goal | Q: Quit",
                                          True, (100, 100, 100))
         info_surface.blit(controls, (10, 30))
 
@@ -190,8 +190,6 @@ class GridVisualizer:
         events = {
             'quit': False,
             'space': False,
-            'r': False,
-            'p': False,
             'c': False,
             'mouse_click': None,
             'left_click': None,
@@ -204,10 +202,6 @@ class GridVisualizer:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     events['space'] = True
-                elif event.key == pygame.K_r:
-                    events['r'] = True
-                elif event.key == pygame.K_p:
-                    events['p'] = True
                 elif event.key == pygame.K_c:
                     events['c'] = True
                 elif event.key == pygame.K_q:

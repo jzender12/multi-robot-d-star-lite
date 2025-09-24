@@ -63,11 +63,9 @@ def main():
     print("MULTI-AGENT D* LITE DEMO")
     print("="*50)
     print("\nControls:")
-    print("  SPACE - Add dynamic obstacle at (5,5)")
-    print("  R     - Remove obstacle at (5,5)")
-    print("  P     - Pause/Resume")
+    print("  SPACE - Pause/Resume")
     print("  C     - Copy current setup to clipboard (when paused)")
-    print("  Click - Add/remove obstacle (when running)")
+    print("  Click - Add/remove obstacle")
     print("  When paused:")
     print("    - Click robot to select it")
     print("    - Click again to set new goal")
@@ -79,8 +77,7 @@ def main():
     sim_speed = 2  # Steps per second
     last_step_time = time.time()
     paused = True  # Start paused
-    dynamic_obstacle_added = False
-    info_text = "PAUSED - Press P to start, or click a robot to set new goal"
+    info_text = "PAUSED - Press SPACE to start, or click a robot to set new goal"
     selected_robot = None  # For goal setting
 
     while running:
@@ -90,25 +87,8 @@ def main():
         if events['quit']:
             running = False
 
-        elif events['space'] and not dynamic_obstacle_added:
-            # Add dynamic obstacle
-            print("Adding dynamic obstacle at (5, 5)...")
-            coordinator.add_dynamic_obstacle(5, 5)
-            dynamic_obstacle_added = True
-            info_text = "Dynamic obstacle added - robots replanning"
-
-        elif events['r'] and dynamic_obstacle_added:
-            # Remove dynamic obstacle
-            print("Removing obstacle at (5, 5)...")
-            world.remove_obstacle(5, 5)
-
-            # Just recompute paths - the obstacle is gone from the world
-            coordinator.recompute_paths()
-            dynamic_obstacle_added = False
-            info_text = "Obstacle removed - paths updated"
-
-        elif events['p']:
-            # Pause/unpause
+        elif events['space']:
+            # Pause/unpause with SPACE key
             paused = not paused
             selected_robot = None  # Clear any selection when toggling pause
             if paused:
@@ -136,10 +116,13 @@ def main():
                 # We're in goal-setting mode
                 # Check if clicked position is valid for a goal
                 if not ((x, y) in world.static_obstacles):
-                    # Set new goal for selected robot
-                    coordinator.set_new_goal(selected_robot, (x, y))
-                    info_text = f"New goal set for {selected_robot} at ({x}, {y}) - Press P to resume"
-                    selected_robot = None  # Clear selection
+                    # Try to set new goal (coordinator will validate)
+                    success = coordinator.set_new_goal(selected_robot, (x, y))
+                    if success:
+                        info_text = f"New goal set for {selected_robot} at ({x}, {y}) - Press SPACE to resume"
+                        selected_robot = None  # Clear selection
+                    else:
+                        info_text = "Cannot place goal there (obstacle or another robot's goal)"
                 else:
                     info_text = "Cannot place goal on obstacle"
 
@@ -151,14 +134,24 @@ def main():
                     info_text = f"Selected {robot} - Click to set new goal"
                 else:
                     # Not on a robot, toggle obstacle
+                    # Check if position is a goal or robot
+                    is_goal_pos = any(goal == (x, y) for goal in coordinator.goals.values())
+                    is_robot_pos = any(pos == (x, y) for pos in coordinator.current_positions.values())
+
                     if (x, y) in world.static_obstacles:
                         world.remove_obstacle(x, y)
                         info_text = f"Removed obstacle at ({x}, {y})"
+                        # Pass the changed cell so D* Lite can update properly
+                        coordinator.recompute_paths(changed_cells={(x, y)})
+                    elif is_goal_pos:
+                        info_text = "Cannot place obstacle on a goal"
+                    elif is_robot_pos:
+                        info_text = "Cannot place obstacle on a robot"
                     else:
                         world.add_obstacle(x, y)
                         info_text = f"Added obstacle at ({x}, {y})"
-                    # Pass the changed cell so D* Lite can update properly
-                    coordinator.recompute_paths(changed_cells={(x, y)})
+                        # Pass the changed cell so D* Lite can update properly
+                        coordinator.recompute_paths(changed_cells={(x, y)})
 
             else:
                 # Not paused - just add/remove obstacles
@@ -166,13 +159,18 @@ def main():
                 is_robot_pos = any(pos == (x, y) for pos in coordinator.current_positions.values())
                 is_goal_pos = any(goal == (x, y) for goal in coordinator.goals.values())
 
-                if not is_robot_pos and not is_goal_pos:
-                    if (x, y) in world.static_obstacles:
-                        world.remove_obstacle(x, y)
-                        info_text = f"Removed obstacle at ({x}, {y})"
-                    else:
-                        world.add_obstacle(x, y)
-                        info_text = f"Added obstacle at ({x}, {y})"
+                if (x, y) in world.static_obstacles:
+                    world.remove_obstacle(x, y)
+                    info_text = f"Removed obstacle at ({x}, {y})"
+                    # Pass the changed cell so D* Lite can update properly
+                    coordinator.recompute_paths(changed_cells={(x, y)})
+                elif is_robot_pos:
+                    info_text = "Cannot place obstacle on a robot"
+                elif is_goal_pos:
+                    info_text = "Cannot place obstacle on a goal"
+                else:
+                    world.add_obstacle(x, y)
+                    info_text = f"Added obstacle at ({x}, {y})"
                     # Pass the changed cell so D* Lite can update properly
                     coordinator.recompute_paths(changed_cells={(x, y)})
 

@@ -217,13 +217,25 @@ class MultiAgentCoordinator:
         # Pass the changed cell so D* Lite can update properly
         self.recompute_paths(changed_cells={(x, y)})
 
-    def set_new_goal(self, robot_id: str, new_goal: Tuple[int, int]):
+    def set_new_goal(self, robot_id: str, new_goal: Tuple[int, int]) -> bool:
         """
         Set a new goal for a robot and recompute its path.
+        Returns True if successful, False if goal is invalid.
         """
         if robot_id not in self.planners:
             print(f"Warning: Robot {robot_id} not found")
-            return
+            return False
+
+        # Validation: Check if goal is on an obstacle
+        if new_goal in self.world.static_obstacles:
+            print(f"Cannot set goal at {new_goal}: Position has an obstacle")
+            return False
+
+        # Validation: Check if goal conflicts with another robot's goal
+        for other_robot_id, other_goal in self.goals.items():
+            if other_robot_id != robot_id and other_goal == new_goal:
+                print(f"Cannot set goal at {new_goal}: Another robot ({other_robot_id}) has this goal")
+                return False
 
         # Update the goal
         self.goals[robot_id] = new_goal
@@ -239,6 +251,7 @@ class MultiAgentCoordinator:
         self.recompute_paths()
 
         print(f"Set new goal for {robot_id}: {new_goal}")
+        return True
 
     def get_robot_at_position(self, position: Tuple[int, int]) -> Optional[str]:
         """
