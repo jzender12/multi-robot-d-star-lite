@@ -1,0 +1,174 @@
+# Visual Test Cases for D* Lite and Collision Detection
+# Format: X=obstacle, .=empty, 1/2=robot starts, A/B=robot goals
+# Single robot tests use 1/A, multi-robot tests use 1/2 and A/B
+
+# ============ SINGLE ROBOT D* LITE TESTS ============
+
+# Test 1: Simple path with no obstacles
+TEST_DSTAR_SIMPLE
+10x10
+. . . . . . . . . .
+. 1 . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . A .
+. . . . . . . . . .
+
+# Test 2: Path around vertical wall obstacle
+TEST_DSTAR_VERTICAL_WALL
+10x10
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . X . . . .
+. . . . . X . . . .
+. . 1 . . X . . A .
+. . . . . X . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+
+# Test 3: Navigate through a maze
+TEST_DSTAR_MAZE
+10x10
+. . . . . . . . . .
+. 1 . X . . . . . .
+. . . X . . X . . .
+. . . X . . X . . .
+. . . . . . . . . .
+. X X . X X X . . .
+. . . X . . . . . .
+. . . X . . X . . .
+. . . . . . X . A .
+. . . . . . . . . .
+
+# Test 4: No path exists (goal surrounded)
+TEST_DSTAR_NO_PATH
+10x10
+. . . . . . . . . .
+. 1 . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . X X X . . .
+. . . . X A X . . .
+. . . . X X X . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+
+# Test 5: Dynamic obstacle test (obstacle added at runtime)
+# During test, obstacle will be added at (4,1)
+TEST_DSTAR_DYNAMIC
+10x10
+. . . . . . . . . .
+. 1 . . . . . . A .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . . . . .
+
+# ============ MULTI-ROBOT COLLISION TESTS ============
+
+# Test 6: Same-Cell Collision - robots meet at crossing
+TEST_SAME_CELL_FIXED
+5x5
+X X A X X
+X X . X X
+B . . . 2
+X X . X X
+X X 1 X X
+
+# Test 7: Parallel Movement - robots move side by side (no collision)
+TEST_PARALLEL_MOVEMENT
+5x5
+X X X X X
+X . . . X
+X 1 2 . X
+X A B . X
+X X X X X
+
+# Test 8: Series Movement - robots move in convoy (no collision)
+TEST_SERIES_MOVEMENT
+5x5
+X X X X X
+X 1 . . X
+X 2 . . X
+X A . . X
+X B . . X
+
+# Test 9: Shear Collision - perpendicular crossing
+# Robot1 moves down, Robot2 moves right, they cross at (2,2)
+TEST_SHEAR_COLLISION
+5x5
+X X 1 X X
+X X 2 B X
+X X A X X
+X X X X X
+X X X X X
+
+# Test 10: Swap Collision (narrow corridor)
+# Robots must exchange positions
+TEST_SWAP
+4x4
+X X X X
+X X X X
+B 1 2 A
+X X X X
+
+# Test 11: Open Grid Crossing
+# Robots have straight paths that cross
+TEST_OPEN_CROSSING
+5x5
+1 . . . A
+. . . . .
+. . . . .
+. . . . .
+B . . . 2
+
+# Test 12: Dynamic Obstacle for multi-robot
+# Add obstacle after initial path planning
+TEST_MULTI_DYNAMIC
+5x5
+. . . . .
+1 . . . A
+. . . . .
+B . . . 2
+. . . . .
+
+# Test 13: Complex multi-robot scenario
+# This set up triggers long planning time
+TEST_COMPLEX_MULTIROBOT
+10x10
+. . . . . . . . . .
+. 1 . . . . . . 2 .
+. . . . . . X . . .
+. . . X . . X . . .
+. . . X . . X . . .
+. . . X . . . . . .
+. . . . . . . . . .
+. X X X X . . . . .
+. B . . . X . . A .
+. . . . . X . . . .
+
+# Test 14: Robot2 pathfinding failure case
+# Robot2 at (8,6) needs to reach (8,8)
+TEST_ROBOT2_PATH_FAILURE
+10x10
+. . . . . . . . . .
+. . . . . . . . . .
+. . . . . . X . . .
+. . . X . . X . . .
+. . . X . . X . . .
+. . . X . . . . . .
+. 1 . . . . . . 2 .
+. X X X X . . . . .
+. B . . . X . . A .
+. . . . . . . . . .
