@@ -169,7 +169,7 @@ class TestCoordinatorResize:
     """Tests for coordinator handling during resize"""
 
     def test_coordinator_resize_updates_paths(self):
-        """Resizing should create clean slate with robot1 and valid path"""
+        """Resizing should create clean slate with robot0 and valid path"""
         world = GridWorld(10, 10)
         coordinator = MultiAgentCoordinator(world)
 
@@ -184,13 +184,13 @@ class TestCoordinatorResize:
         if hasattr(coordinator, 'resize_world'):
             coordinator.resize_world(15, 15)
 
-            # Only robot1 should exist with new path
-            assert "robot1" in coordinator.paths
+            # Only robot0 should exist with new path
+            assert "robot0" in coordinator.paths
             assert "robot2" not in coordinator.paths  # Clean slate removes robot2
-            # robot1 should have valid path from (0,0) to (14,14)
-            assert len(coordinator.paths["robot1"]) > 0
-            assert coordinator.current_positions["robot1"] == (0, 0)
-            assert coordinator.goals["robot1"] == (14, 14)
+            # robot0 should have valid path from (0,0) to (14,14)
+            assert len(coordinator.paths["robot0"]) > 0
+            assert coordinator.current_positions["robot0"] == (0, 0)
+            assert coordinator.goals["robot0"] == (14, 14)
 
     def test_coordinator_removes_invalid_robots(self):
         """Coordinator should handle robots outside new bounds"""
@@ -205,14 +205,14 @@ class TestCoordinatorResize:
         if hasattr(coordinator, 'resize_world'):
             coordinator.resize_world(5, 5)
 
-            # Only robot1 should remain
-            assert "robot1" in coordinator.planners
+            # Only robot0 should remain after clean slate
+            assert "robot0" in coordinator.planners
             assert "robot2" not in coordinator.planners
-            assert "robot1" in coordinator.current_positions
+            assert "robot0" in coordinator.current_positions
             assert "robot2" not in coordinator.current_positions
 
     def test_coordinator_resize_clean_slate(self):
-        """Resize should create clean slate with robot1"""
+        """Resize should create clean slate with robot0"""
         world = GridWorld(10, 10)
         coordinator = MultiAgentCoordinator(world)
 
@@ -225,12 +225,12 @@ class TestCoordinatorResize:
         if hasattr(coordinator, 'resize_world'):
             coordinator.resize_world(5, 5)
 
-            # Should have clean slate with only robot1
+            # Should have clean slate with only robot0
             assert len(coordinator.planners) == 1
-            assert "robot1" in coordinator.planners
+            assert "robot0" in coordinator.planners
             assert "robot2" not in coordinator.planners
-            assert coordinator.current_positions["robot1"] == (0, 0)
-            assert coordinator.goals["robot1"] == (4, 4)  # bottom-right of 5x5
+            assert coordinator.current_positions["robot0"] == (0, 0)
+            assert coordinator.goals["robot0"] == (4, 4)  # bottom-right of 5x5
             assert len(world.static_obstacles) == 0
 
 
@@ -313,18 +313,18 @@ class TestIntegration:
             assert world.height == 6
             assert len(world.static_obstacles) == 0  # All obstacles cleared
 
-            # Only robot1 exists at new position
+            # Only robot0 exists at new position
             assert len(coordinator.planners) == 1
-            assert "robot1" in coordinator.planners
+            assert "robot0" in coordinator.planners
             assert "robot2" not in coordinator.planners
 
-            # robot1 at top-left, goal at bottom-right
-            assert coordinator.current_positions["robot1"] == (0, 0)
-            assert coordinator.goals["robot1"] == (5, 5)
+            # robot0 at top-left, goal at bottom-right
+            assert coordinator.current_positions["robot0"] == (0, 0)
+            assert coordinator.goals["robot0"] == (5, 5)
 
             # Path should be computable
-            if "robot1" in coordinator.paths:
-                assert len(coordinator.paths["robot1"]) > 0
+            if "robot0" in coordinator.paths:
+                assert len(coordinator.paths["robot0"]) > 0
 
 
 if __name__ == "__main__":

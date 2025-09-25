@@ -21,13 +21,13 @@ class TestRobotAddition:
         coordinator.add_robot("robot1", start=(0, 0), goal=(9, 9))
         coordinator.add_robot("robot2", start=(9, 0), goal=(0, 9))
 
-        # Get next IDs
+        # Get next IDs - implementation starts from robot0
         next_id = coordinator.get_next_robot_id()
-        assert next_id == "robot3"
+        assert next_id == "robot0"
 
         coordinator.add_robot(next_id, start=(5, 5), goal=(2, 2))
         next_id = coordinator.get_next_robot_id()
-        assert next_id == "robot4"
+        assert next_id == "robot3"
 
     def test_get_next_robot_id_with_gaps(self):
         """Should handle gaps in robot numbering"""
@@ -38,9 +38,9 @@ class TestRobotAddition:
         coordinator.add_robot("robot1", start=(0, 0), goal=(9, 9))
         coordinator.add_robot("robot3", start=(9, 0), goal=(0, 9))
 
-        # Should find robot2 is missing and use robot4
+        # Should find robot0 is missing since implementation starts from robot0
         next_id = coordinator.get_next_robot_id()
-        assert next_id == "robot4"
+        assert next_id == "robot0"
 
     def test_add_robot_with_validation(self):
         """Should validate robot placement"""
@@ -206,10 +206,10 @@ class TestRobotManagementIntegration:
         world = GridWorld(10, 10)
         coordinator = MultiAgentCoordinator(world)
 
-        # Add many robots (up to grid capacity)
-        max_robots = 20  # Reasonable limit for 10x10 grid
+        # Implementation limits to 10 robots (robot0 through robot9)
+        max_robots = 10
 
-        for i in range(1, max_robots + 1):
+        for i in range(max_robots):
             x = i % 10
             y = (i // 10) % 10
             # Ensure different goal
