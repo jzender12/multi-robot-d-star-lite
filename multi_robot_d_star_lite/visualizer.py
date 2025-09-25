@@ -1,5 +1,7 @@
 import pygame
 from typing import Dict, Tuple, List
+from .ui_components import ControlPanel
+from .utils.colors import generate_robot_color
 
 class GridVisualizer:
     """
@@ -13,12 +15,19 @@ class GridVisualizer:
         self.width = world.width * cell_size
         self.height = world.height * cell_size
 
+        # Add space for control panel (200 pixels wide on the right)
+        self.panel_width = 200
+        self.total_width = self.width + self.panel_width
+
         pygame.init()
-        self.screen = pygame.display.set_mode((self.width, self.height + 50))  # Extra space for info
+        self.screen = pygame.display.set_mode((self.total_width, self.height + 50))  # Extra space for info
         pygame.display.set_caption("Multi-Agent D* Lite Demo")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 24)
         self.small_font = pygame.font.Font(None, 18)
+
+        # Create control panel
+        self.control_panel = ControlPanel(self.width, 0, self.panel_width, self.height + 50)
 
         # Colors (RGB values)
         self.colors = {
@@ -105,24 +114,48 @@ class GridVisualizer:
         if paths:
             for robot_id, path in paths.items():
                 if path and len(path) > 1:
-                    path_color = f"path{robot_id[-1]}"  # Extract number from robot ID
+                    # Use even lighter version of robot color for path
+                    color = generate_robot_color(robot_id)
+                    r, g, b = color
+                    path_color_rgb = (min(255, r + 100), min(255, g + 100), min(255, b + 100))
+                    path_color_key = f"path_{robot_id}"
+                    if path_color_key not in self.colors:
+                        self.colors[path_color_key] = path_color_rgb
+                    path_color = path_color_key
+
                     self.draw_path(path, path_color)
 
         # Draw goals
         if coordinator:
             for robot_id, goal_pos in coordinator.goals.items():
-                goal_color = f"goal{robot_id[-1]}"
+                # Use lighter version of robot color for goal
+                color = generate_robot_color(robot_id)
+                r, g, b = color
+                goal_color_rgb = (min(255, r + 50), min(255, g + 50), min(255, b + 50))
+                goal_color_key = f"goal_{robot_id}"
+                if goal_color_key not in self.colors:
+                    self.colors[goal_color_key] = goal_color_rgb
+                goal_color = goal_color_key
+
                 self.draw_cell(goal_pos[0], goal_pos[1], goal_color, filled=False)
 
-                # Draw 'G' label
-                label = self.font.render(f'G{robot_id[-1]}', True, self.colors[goal_color])
+                # Draw 'G' label with robot number (G0-G9)
+                if robot_id.startswith("robot") and len(robot_id) > 5:
+                    goal_num = robot_id[5:]  # Get the number part
+                else:
+                    goal_num = "?"
+                label = self.font.render(f'G{goal_num}', True, self.colors[goal_color])
                 label_x = goal_pos[0] * self.cell_size + self.cell_size // 4
                 label_y = goal_pos[1] * self.cell_size + self.cell_size // 4
                 self.screen.blit(label, (label_x, label_y))
 
         # Draw robots
         for robot_id, pos in self.world.robot_positions.items():
-            robot_color = f"robot{robot_id[-1]}"
+            # Get color dynamically for all robots
+            color = generate_robot_color(robot_id)
+            if robot_id not in self.colors:
+                self.colors[robot_id] = color
+            robot_color = robot_id
 
             # If this robot is selected, draw a highlight
             if selected_robot == robot_id:
@@ -133,40 +166,27 @@ class GridVisualizer:
 
             self.draw_circle(pos[0], pos[1], robot_color)
 
-            # Draw robot ID
-            label = self.font.render(robot_id[-1], True, (255, 255, 255))
+            # Draw robot ID - extract the digit (0-9) from robotN
+            if robot_id.startswith("robot") and len(robot_id) > 5:
+                label_text = robot_id[5:]  # Get the number part
+            else:
+                label_text = '?'
+            label = self.font.render(label_text, True, (255, 255, 255))
             label_rect = label.get_rect(center=(
                 pos[0] * self.cell_size + self.cell_size // 2,
                 pos[1] * self.cell_size + self.cell_size // 2
             ))
             self.screen.blit(label, label_rect)
 
-        # Draw pause overlay
-        if paused:
-            # Semi-transparent overlay
-            overlay = pygame.Surface((self.width, self.height))
-            overlay.set_alpha(50)  # Transparency
-            overlay.fill((100, 100, 100))
-            self.screen.blit(overlay, (0, 0))
+        # No pause overlay - keep grid visible when paused
 
-            # Large PAUSED text in center
-            big_font = pygame.font.Font(None, 72)
-            paused_label = big_font.render("PAUSED", True, (255, 255, 0))
-            paused_rect = paused_label.get_rect(center=(self.width // 2, self.height // 2))
-            self.screen.blit(paused_label, paused_rect)
-
-        # Draw info bar at bottom
-        info_surface = pygame.Surface((self.width, 50))
+        # Draw info bar at bottom (extend across full width)
+        info_surface = pygame.Surface((self.total_width, 50))
         info_surface.fill((240, 240, 240))
 
         # Step counter
         step_text = self.font.render(f"Step: {step_count}", True, (0, 0, 0))
         info_surface.blit(step_text, (10, 10))
-
-        # Show PAUSED prominently if paused
-        if paused:
-            paused_text = self.font.render("PAUSED", True, (255, 0, 0))
-            info_surface.blit(paused_text, (self.width - 100, 10))
 
         # Info text
         if info_text:
@@ -179,6 +199,9 @@ class GridVisualizer:
         info_surface.blit(controls, (10, 30))
 
         self.screen.blit(info_surface, (0, self.height))
+
+        # Draw control panel
+        self.control_panel.draw(self.screen)
 
         pygame.display.flip()
 
@@ -194,6 +217,7 @@ class GridVisualizer:
             'mouse_click': None,
             'left_click': None,
             'right_click': None,
+            'panel_event': None,
         }
 
         for event in pygame.event.get():
@@ -209,7 +233,14 @@ class GridVisualizer:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # Get grid coordinates from mouse position
                 mx, my = event.pos
-                if my < self.height:  # Only if clicking in grid area
+
+                # Check if click is in control panel area
+                if mx >= self.width:  # Click is in panel area
+                    # Handle control panel clicks
+                    panel_event = self.control_panel.handle_event(event)
+                    if panel_event:
+                        events['panel_event'] = panel_event
+                elif my < self.height:  # Only if clicking in grid area
                     grid_x = mx // self.cell_size
                     grid_y = my // self.cell_size
                     if 0 <= grid_x < self.world.width and 0 <= grid_y < self.world.height:

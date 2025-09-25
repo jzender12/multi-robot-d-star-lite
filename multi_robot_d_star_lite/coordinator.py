@@ -15,10 +15,23 @@ class MultiAgentCoordinator:
         self.goals = {}  # robot_id -> goal position
 
     def add_robot(self, robot_id: str, start: Tuple[int, int],
-                  goal: Tuple[int, int]):
+                  goal: Tuple[int, int]) -> bool:
         """
         Add a robot to the system with its start and goal positions.
+        Returns False if position is occupied or max robots reached, True if successful.
+        Maximum of 10 robots allowed (robot0-robot9).
         """
+        # Check if we've reached the maximum number of robots
+        if len(self.planners) >= 10:
+            print(f"Cannot add {robot_id}: Maximum of 10 robots reached")
+            return False
+
+        # Check if start position is already occupied
+        for existing_robot_id, pos in self.current_positions.items():
+            if pos == start:
+                print(f"Cannot add {robot_id}: Position {start} is occupied by {existing_robot_id}")
+                return False
+
         # Create planner for this robot
         planner = DStarLite(self.world, robot_id)
         planner.initialize(start, goal)
@@ -36,6 +49,8 @@ class MultiAgentCoordinator:
         else:
             self.paths[robot_id] = []
             print(f"Warning: No initial path found for robot {robot_id} - Reason: {reason}")
+
+        return True
 
     def detect_collision_at_next_step(self) -> Optional[Tuple[str, str, str]]:
         """
@@ -252,6 +267,91 @@ class MultiAgentCoordinator:
 
         print(f"Set new goal for {robot_id}: {new_goal}")
         return True
+
+    def remove_robot(self, robot_id: str) -> bool:
+        """
+        Remove a robot from the system.
+        Returns True if successful, False if robot doesn't exist.
+        """
+        if robot_id not in self.planners:
+            print(f"Warning: Robot {robot_id} not found")
+            return False
+
+        # Remove from all tracking dictionaries
+        del self.planners[robot_id]
+        del self.current_positions[robot_id]
+        del self.goals[robot_id]
+
+        if robot_id in self.paths:
+            del self.paths[robot_id]
+
+        if robot_id in self.world.robot_positions:
+            del self.world.robot_positions[robot_id]
+
+        print(f"Removed robot {robot_id}")
+
+        # Recompute paths for remaining robots
+        self.recompute_paths()
+
+        return True
+
+    def get_next_robot_id(self) -> Optional[str]:
+        """
+        Generate the next available robot ID.
+        Returns robotN where N is the next available number (0-9).
+        Returns None if maximum robots reached.
+        """
+        existing_ids = set(self.planners.keys())
+
+        # Check if we've reached the maximum of 10 robots
+        if len(existing_ids) >= 10:
+            return None
+
+        # Find the next available number (0-9)
+        for i in range(10):
+            if f"robot{i}" not in existing_ids:
+                return f"robot{i}"
+
+        return None  # Should not reach here if logic is correct
+
+    def clear_all_robots(self):
+        """
+        Remove all robots from the system.
+        """
+        # Clear all dictionaries
+        self.planners.clear()
+        self.paths.clear()
+        self.current_positions.clear()
+        self.goals.clear()
+        self.world.robot_positions.clear()
+
+        print("Cleared all robots")
+
+    def resize_world(self, new_width: int, new_height: int):
+        """
+        Resize world to new dimensions with clean slate.
+        Clears everything and places robot1 at start.
+        """
+        # Clear all robots and obstacles
+        self.clear_all_robots()
+
+        # Resize and clear the world
+        self.world.resize(new_width, new_height)
+        self.world.static_obstacles.clear()
+        self.world.grid.fill(0)  # All empty cells
+
+        # Add robot0 at top-left with goal at bottom-right
+        self.add_robot("robot0",
+                       start=(0, 0),
+                       goal=(new_width - 1, new_height - 1))
+
+        print(f"Resized world to {new_width}x{new_height} - Clean slate with robot0")
+
+    def reset_to_default(self):
+        """
+        Reset to default 10x10 clean slate.
+        """
+        self.resize_world(10, 10)
 
     def get_robot_at_position(self, position: Tuple[int, int]) -> Optional[str]:
         """

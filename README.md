@@ -16,6 +16,12 @@ A Python implementation of the D* Lite algorithm for multi-robot path planning w
   - Shear collisions (perpendicular crossing conflicts)
 - **Dynamic Obstacles**: Real-time obstacle addition/removal with automatic replanning
 - **Interactive Visualization**: Pygame-based GUI with real-time simulation
+- **Enhanced Control Panel**: Comprehensive controls for:
+  - Adding/removing robots dynamically
+  - Resizing arena (5x5 to 30x30)
+  - Speed control
+  - Clear all obstacles / Reset simulation
+- **Dynamic Color Generation**: Automatic color assignment for unlimited robots
 - **Visual Test Format**: Intuitive ASCII-based test case definitions
 
 ## Installation
@@ -70,6 +76,18 @@ python -m multi_robot_d_star_lite
 
 ## Usage
 
+### Getting Started
+
+The simulation starts with a clean slate:
+- 10x10 grid (no obstacles)
+- Robot1 at top-left corner (0,0)
+- Robot1's goal at bottom-right corner (9,9)
+
+Build your scenario by:
+- **Adding robots**: Use the "Add Robot" button
+- **Placing obstacles**: Click on grid cells
+- **Resizing arena**: Select size (creates new clean slate)
+
 ### Running the Interactive Demo
 
 After installation, you can run the demo in several ways:
@@ -119,10 +137,17 @@ should_continue, collision = coordinator.step_simulation()
   - Click to add/remove obstacles dynamically
 - **Q**: Quit
 
+**Control Panel**:
+- **Add Robot**: Add new robot at free position
+- **Remove Robot**: Remove selected robot
+- **Arena Size** (5x5, 10x10, 15x15, 20x20): Resize and reset to clean slate
+- **Reset**: Return to default 10x10 with robot1 only
+- **Clear All**: Remove all obstacles (keeps robots)
+
 **Note**: The system prevents invalid placements:
 - Cannot place obstacles on robots or goals
 - Cannot place goals on obstacles
-- Cannot have two robots with the same goal
+- Cannot have two robots with the same goal or position
 
 ### Running Tests
 
@@ -147,17 +172,24 @@ should_continue, collision = coordinator.step_simulation()
 ```
 multi-robot-d-star-lite/
 ├── multi_robot_d_star_lite/    # Main package
-│   ├── world.py                # Grid environment
+│   ├── world.py                # Grid environment with resizing
 │   ├── dstar_lite.py           # D* Lite algorithm
-│   ├── coordinator.py          # Multi-agent coordination
+│   ├── coordinator.py          # Multi-agent coordination & robot management
 │   ├── visualizer.py           # Pygame visualization
+│   ├── ui_components.py        # Control panel UI components
 │   ├── simple_visualizer.py    # ASCII visualization
 │   └── utils/
 │       ├── export_grid.py      # Grid export utilities
-│       └── parse_test_grid.py  # Test case parser
+│       ├── parse_test_grid.py  # Test case parser
+│       └── colors.py           # Dynamic color generation
 ├── tests/                       # Test suite
 │   ├── test_world.py           # World tests
 │   ├── test_collision.py       # Collision detection tests
+│   ├── test_placement_validation.py # Placement validation tests
+│   ├── test_robot_management.py    # Robot management tests
+│   ├── test_world_resize.py        # World resizing tests
+│   ├── test_color_generation.py    # Color generation tests
+│   ├── test_control_panel.py       # UI component tests
 │   ├── test_export.py          # Export/import tests
 │   └── fixtures/
 │       └── test_cases.txt      # Visual test cases

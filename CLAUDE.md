@@ -22,6 +22,8 @@ D* Lite maintains two distance values for each cell: the g-value (current best d
    - **Swap**: Robots exchanging positions
    - **Shear**: Robot entering cell that another is leaving perpendicularly
 3. **Dynamic Replanning**: When obstacles are added/removed, all robots replan using D* Lite's incremental updates
+4. **Clean Slate Resizing**: Arena resize clears everything and places robot1 at start
+5. **Duplicate Prevention**: Robots cannot share starting positions
 
 ## Project Structure
 
@@ -33,17 +35,23 @@ multi-robot-d-star-lite/
 │   ├── dstar_lite.py           # Core D* Lite algorithm (iteration limit: width*height*100)
 │   ├── coordinator.py          # Multi-agent coordination with collision detection
 │   ├── visualizer.py           # Pygame visualization with interactive controls
+│   ├── ui_components.py        # Button and ControlPanel UI components
 │   ├── simple_visualizer.py    # ASCII visualization for debugging
 │   └── utils/
 │       ├── __init__.py
 │       ├── export_grid.py      # Export current state to visual format
-│       └── parse_test_grid.py  # Parser for visual test format
+│       ├── parse_test_grid.py  # Parser for visual test format
+│       └── colors.py           # Dynamic color generation for robots
 ├── tests/                       # All test files
 │   ├── __init__.py
 │   ├── requirements.txt        # Test-specific dependencies
 │   ├── test_world.py           # Grid world functionality tests
 │   ├── test_collision.py       # Collision detection tests (formerly test_all.py)
 │   ├── test_placement_validation.py  # Placement validation tests
+│   ├── test_robot_management.py      # Robot add/remove tests
+│   ├── test_world_resize.py          # Arena resizing tests
+│   ├── test_color_generation.py      # Color generation tests
+│   ├── test_control_panel.py         # UI component tests
 │   ├── test_export.py          # Export/import test
 │   └── fixtures/
 │       └── test_cases.txt      # Visual test cases for all tests
@@ -68,6 +76,10 @@ multi-robot-d-star-lite/
 - `is_free()` checks if a cell is traversable (only checks static obstacles, NOT robots)
 - `get_neighbors()` returns only 4 cardinal neighbors with cost 1.0
 - Robots stored in `robot_positions` but don't block paths during planning
+- **NEW**: `resize(width, height)` - Dynamically resize grid (3x3 to 30x30)
+  - Preserves obstacles within new bounds
+  - Removes out-of-bounds content
+  - Enforces min/max size limits
 
 ### D* Lite Algorithm (dstar_lite.py)
 - **Critical**: `km` parameter accumulates with each robot move for correctness
@@ -88,6 +100,12 @@ Key methods:
   - Returns `True` if successful, `False` if invalid
   - Prevents goals on obstacles
   - Prevents multiple robots having same goal
+- **NEW**: `remove_robot(robot_id)` - Remove a robot from the system
+- **NEW**: `get_next_robot_id()` - Generate next sequential robot ID
+- **NEW**: `clear_all_robots()` - Remove all robots
+- **NEW**: `resize_world(width, height)` - Resize to clean slate with robot1
+- **NEW**: `reset_to_default()` - Reset to 10x10 clean slate
+- **NEW**: `add_robot()` returns bool - False if position occupied
 
 ### Visualization (visualizer.py & __main__.py)
 Interactive features:
@@ -98,6 +116,23 @@ Interactive features:
   - Cannot place obstacles on robots or goals
   - Cannot place goals on obstacles or other robot goals
 - **Visual feedback**: Selected robots highlighted, paths shown in different colors
+
+### UI Components (ui_components.py)
+- **Button class**: Interactive buttons with hover/click states
+- **ControlPanel class**: Comprehensive control panel with:
+  - Add/Remove robot buttons
+  - Arena size presets (5x5, 10x10, 15x15, 20x20)
+  - Speed control
+  - Clear All / Reset buttons
+  - Robot count display
+- **ButtonGroup**: Manages exclusive button selection
+
+### Color Generation (utils/colors.py)
+- **Dynamic color generation**: Unique colors for unlimited robots
+- **HSV color space**: Even distribution around color wheel
+- **Predefined colors**: Robot1 (blue) and Robot2 (red) fixed
+- **Color sets**: Matching colors for robot/goal/path
+- **Color caching**: Consistent colors across sessions
 
 **Note**: `main.py` now simply imports from `__main__.py` to avoid code duplication
 
@@ -209,17 +244,19 @@ During simulation, press 'C' when paused to copy the current grid state to clipb
 
 ## How It Works
 
-1. **Path Planning**: Each robot runs D* Lite independently WITHOUT considering other robots
-2. **Collision Detection**: System checks for three types of collisions:
+1. **Initial State**: Clean 10x10 grid with robot1 at (0,0), goal at (9,9)
+2. **Path Planning**: Each robot runs D* Lite independently WITHOUT considering other robots
+3. **Collision Detection**: System checks for three types of collisions:
    - Same-cell: Both robots trying to enter same position
    - Swap: Robots exchanging positions
    - Shear: Perpendicular crossing where one robot enters a cell another is leaving
-3. **Collision Response**: Simulation PAUSES when collision detected, displaying the specific collision type
-4. **Placement Validation**: Prevents invalid configurations:
+4. **Collision Response**: Simulation PAUSES when collision detected, displaying the specific collision type
+5. **Placement Validation**: Prevents invalid configurations:
    - Goals cannot be placed on obstacles
-   - Multiple robots cannot have the same goal
+   - Multiple robots cannot have the same goal or position
    - Obstacles cannot be placed on robots or goals
-5. **Dynamic Updates**: When obstacles change, D* Lite efficiently replans using incremental updates
+6. **Arena Resizing**: Creates clean slate with robot1 only
+7. **Dynamic Updates**: When obstacles change, D* Lite efficiently replans using incremental updates
 
 ## Key Insights from Development
 
@@ -241,6 +278,26 @@ During simulation, press 'C' when paused to copy the current grid state to clipb
 3. **Manhattan heuristic**: Uses 4-connected grid, no diagonal movement
 4. **Dynamic obstacles**: Modify world and call `update_edge_costs()` for efficient replanning
 
+## Test-Driven Development
+
+This project follows TDD principles with comprehensive test coverage:
+- **30+ passing tests** for core functionality
+- Test files for each major component
+- Visual test format for complex scenarios
+- Tests written BEFORE implementation
+
+### Test Coverage:
+- Robot management: 13 tests - duplicate prevention, add/remove
+- World resizing: 17 tests - clean slate behavior
+- Placement validation: 11 tests - goal/obstacle validation
+- Color generation: Mock tests for dynamic colors
+- UI components: Mock tests for control panel
+
+### Recent Test Fixes:
+- `test_no_duplicate_start_positions`: Now correctly expects False return
+- `test_coordinator_resize_clean_slate`: Tests clean slate behavior
+- `test_full_resize_workflow`: Validates robot1 placement after resize
+
 ## Future Enhancements
 
 For production systems:
@@ -249,6 +306,9 @@ For production systems:
 - Compiled extensions for performance
 - Predictive collision avoidance
 - Multi-resolution planning for large grids
+- Custom arena size input dialog
+- Waypoint-based path editing
+- Path history visualization
 
 ## Summary
 

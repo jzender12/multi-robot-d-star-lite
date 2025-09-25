@@ -82,3 +82,39 @@ class GridWorld:
                 neighbors.append((nx, ny, cost))
 
         return neighbors
+
+    def resize(self, new_width: int, new_height: int):
+        """
+        Resize the world to new dimensions.
+        Preserves obstacles and robots within bounds.
+        Enforces minimum and maximum size limits.
+        """
+        # Enforce size limits
+        MIN_SIZE = 3
+        MAX_SIZE = 30
+
+        new_width = max(MIN_SIZE, min(MAX_SIZE, new_width))
+        new_height = max(MIN_SIZE, min(MAX_SIZE, new_height))
+
+        # Create new grid
+        new_grid = np.full((new_height, new_width), CellType.EMPTY.value, dtype=np.int8)
+
+        # Preserve obstacles within bounds
+        new_obstacles = set()
+        for x, y in self.static_obstacles:
+            if 0 <= x < new_width and 0 <= y < new_height:
+                new_obstacles.add((x, y))
+                new_grid[y, x] = CellType.OBSTACLE.value
+
+        # Preserve robots within bounds
+        new_robot_positions = {}
+        for robot_id, (x, y) in self.robot_positions.items():
+            if 0 <= x < new_width and 0 <= y < new_height:
+                new_robot_positions[robot_id] = (x, y)
+
+        # Update world properties
+        self.width = new_width
+        self.height = new_height
+        self.grid = new_grid
+        self.static_obstacles = new_obstacles
+        self.robot_positions = new_robot_positions

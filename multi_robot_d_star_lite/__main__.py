@@ -19,37 +19,17 @@ def main():
     Creates a 10x10 grid with 2 robots navigating around obstacles.
     """
 
-    # Create the world
-    print("Initializing 10x10 grid world...")
+    # Create clean 10x10 world - no obstacles initially
+    print("Initializing 10x10 grid world (clean slate)...")
     world = GridWorld(10, 10)
-
-    # Add obstacles based on the specified configuration
-    # Based on the grid:
-    # Row 2 (y=2): obstacle at column 6 (x=6)
-    # Row 3-4 (y=3,4): obstacles at column 3 and 6
-    # Row 5 (y=5): obstacle at column 3
-    # Row 7 (y=7): full horizontal wall from column 1-9
-    obstacles = [
-        # Vertical walls
-        (6, 2), (6, 3), (6, 4),  # Right vertical wall
-        (3, 3), (3, 4), (3, 5),  # Left vertical wall
-        # Horizontal wall at row 7 (complete line)
-        (1, 7), (2, 7), (3, 7), (4, 7), (5, 7), (6, 7), (7, 7), (8, 7), (9, 7),
-    ]
-
-    for x, y in obstacles:
-        world.add_obstacle(x, y)
 
     # Create coordinator
     print("Initializing multi-agent coordinator...")
     coordinator = MultiAgentCoordinator(world)
 
-    # Add two robots with the specified positions from the grid
-    # Robot 1: Start at (1, 1) marked as "1", Goal at (8, 8) marked as "A"
-    coordinator.add_robot("robot1", start=(1, 1), goal=(8, 8))
-
-    # Robot 2: Start at (8, 1) marked as "2", Goal at (1, 8) marked as "B"
-    coordinator.add_robot("robot2", start=(8, 1), goal=(1, 8))
+    # Add only robot0 initially at top-left, goal at bottom-right
+    # Users will add more robots and obstacles interactively
+    coordinator.add_robot("robot0", start=(0, 0), goal=(9, 9))
 
     # Initial path computation
     print("Computing initial paths...")
@@ -57,6 +37,8 @@ def main():
 
     # Create visualizer
     visualizer = GridVisualizer(world)
+    visualizer.control_panel.update_robot_count(len(coordinator.planners))
+    visualizer.control_panel.set_paused(True)  # Start paused
 
     # Run simulation
     print("\n" + "="*50)
@@ -77,7 +59,7 @@ def main():
     sim_speed = 2  # Steps per second
     last_step_time = time.time()
     paused = True  # Start paused
-    info_text = "PAUSED - Press SPACE to start, or click a robot to set new goal"
+    info_text = "PAUSED - Press SPACE to start. Click to add obstacles or robots."
     selected_robot = None  # For goal setting
 
     while running:
@@ -91,6 +73,7 @@ def main():
             # Pause/unpause with SPACE key
             paused = not paused
             selected_robot = None  # Clear any selection when toggling pause
+            visualizer.control_panel.set_paused(paused)  # Update control panel
             if paused:
                 info_text = "PAUSED - Click robot to select, then click to set goal"
             else:
@@ -108,6 +91,124 @@ def main():
                 info_text = "Failed to copy to clipboard - see console output"
                 print("Could not copy to clipboard. Here's the grid state:")
                 print(grid_export)
+
+        elif events.get('panel_event'):
+            # Handle control panel events
+            action = events['panel_event']
+
+            if action == "Add Robot":
+                # Find a free position for the new robot
+                free_positions = []
+                for x in range(world.width):
+                    for y in range(world.height):
+                        if world.is_free(x, y) and (x, y) not in coordinator.current_positions.values():
+                            free_positions.append((x, y))
+
+                if len(free_positions) >= 2:  # Need at least 2 free positions (start and goal)
+                    import random
+                    start_pos = random.choice(free_positions)
+                    free_positions.remove(start_pos)
+                    goal_pos = random.choice(free_positions)
+
+                    robot_id = coordinator.get_next_robot_id()
+                    if robot_id is None:
+                        info_text = "Maximum of 10 robots reached"
+                    else:
+                        success = coordinator.add_robot(robot_id, start=start_pos, goal=goal_pos)
+                        if success:
+                            coordinator.recompute_paths()
+                            info_text = f"Added {robot_id} at {start_pos} with goal {goal_pos}"
+                            visualizer.control_panel.update_robot_count(len(coordinator.planners))
+                            # Disable Add Robot button if we've reached 10 robots
+                            if len(coordinator.planners) >= 10:
+                                visualizer.control_panel.buttons["Add Robot"].enabled = False
+                        else:
+                            info_text = f"Failed to add {robot_id}"
+                else:
+                    info_text = "Not enough free space for a new robot"
+
+            elif action == "Remove Robot":
+                # Remove the selected robot, or the last one if none selected
+                robot_to_remove = selected_robot
+                if not robot_to_remove and len(coordinator.planners) > 0:
+                    # Get the highest numbered robot
+                    robots = list(coordinator.planners.keys())
+                    robots.sort(key=lambda r: int(r[5:]) if r.startswith("robot") and r[5:].isdigit() else 0)
+                    robot_to_remove = robots[-1] if robots else None
+
+                if robot_to_remove and robot_to_remove != "robot0":  # Keep robot0
+                    success = coordinator.remove_robot(robot_to_remove)
+                    if success:
+                        info_text = f"Removed {robot_to_remove}"
+                        selected_robot = None
+                        visualizer.control_panel.update_robot_count(len(coordinator.planners))
+                        # Re-enable Add Robot button if we're below 10 robots
+                        if len(coordinator.planners) < 10:
+                            visualizer.control_panel.buttons["Add Robot"].enabled = True
+                    else:
+                        info_text = f"Failed to remove {robot_to_remove}"
+                else:
+                    info_text = "Cannot remove robot0 (minimum 1 robot required)"
+
+            elif action in ["10x10", "15x15", "20x20"]:
+                # Resize the arena
+                size = int(action.split('x')[0])
+                coordinator.resize_world(size, size)
+
+                # Recreate visualizer with new world size
+                visualizer.cleanup()
+                visualizer = GridVisualizer(world)
+                visualizer.control_panel.update_robot_count(len(coordinator.planners))
+
+                info_text = f"Resized arena to {action} - Clean slate with robot0"
+                paused = True  # Pause after resize
+                visualizer.control_panel.set_paused(paused)
+
+            elif action == "Reset":
+                # Reset - clear obstacles and reset robots, keep current size
+                # Clear all obstacles
+                world.static_obstacles.clear()
+                world.grid.fill(0)
+
+                # Clear all robots except robot0
+                coordinator.clear_all_robots()
+
+                # Add robot0 back at (0,0) with goal at bottom-right
+                coordinator.add_robot("robot0",
+                                     start=(0, 0),
+                                     goal=(world.width - 1, world.height - 1))
+
+                # Recompute paths
+                coordinator.recompute_paths()
+
+                # Update UI
+                visualizer.control_panel.update_robot_count(len(coordinator.planners))
+                visualizer.control_panel.buttons["Add Robot"].enabled = True  # Re-enable since we're back to 1 robot
+
+                info_text = f"Reset grid - cleared obstacles and robots"
+                paused = True
+                visualizer.control_panel.set_paused(paused)
+
+            elif action == "Speed-":
+                visualizer.control_panel.decrease_speed()
+                sim_speed = visualizer.control_panel.speed
+                info_text = f"Speed: {sim_speed:.1f}/s"
+
+            elif action == "Speed+":
+                visualizer.control_panel.increase_speed()
+                sim_speed = visualizer.control_panel.speed
+                info_text = f"Speed: {sim_speed:.1f}/s"
+
+            elif action == "Pause/Play":
+                # Toggle pause state
+                paused = not paused
+                visualizer.control_panel.set_paused(paused)
+                selected_robot = None  # Clear any selection when toggling pause
+                if paused:
+                    info_text = "PAUSED - Click robot to select, then click to set goal"
+                else:
+                    info_text = "Running - Robots navigating using D* Lite"
+                print("PAUSED" if paused else "RESUMED")
 
         elif events['left_click']:
             x, y = events['left_click']
