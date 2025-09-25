@@ -214,5 +214,4 @@ def clear_color_cache():
     Clear the color cache.
     Useful for testing or resetting colors.
     """
-    global _color_cache
     _color_cache.clear()
