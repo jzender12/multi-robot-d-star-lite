@@ -1,13 +1,13 @@
 # Multi-Robot D* Lite Path Planning
 
-[![CI](https://github.com/jzender12/multi-robot-d-star-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/jzender12/multi-robot-d-star-lite/actions/workflows/ci.yml)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Multi-robot path planning demo using D* Lite algorithm with collision detection.
 
-A Python implementation of the D* Lite algorithm for multi-robot path planning with comprehensive collision detection on a 2D grid.
+## Requirements
 
-## Features
+- Python 3.8+
+- python3-venv
 
+<<<<<<< HEAD
 - **D* Lite Algorithm**: Efficient incremental path replanning for dynamic environments
 - **Multi-Robot Coordination**: Support for multiple robots navigating simultaneously
 - **Collision Detection**: Three types of collision detection:
@@ -31,6 +31,9 @@ A Python implementation of the D* Lite algorithm for multi-robot path planning w
 ## Quick Start
 
 The easiest way to get started:
+=======
+## Installation
+>>>>>>> 716763ffe1614a8d2d1b213e99649f1037e851c2
 
 ```bash
 git clone https://github.com/jzender12/multi-robot-d-star-lite.git
@@ -38,33 +41,87 @@ cd multi-robot-d-star-lite
 ./run_app.sh
 ```
 
-That's it! The `run_app.sh` script handles everything:
-- Creates/activates a virtual environment
-- Installs all dependencies
-- Launches the demo
-- Cleans up on exit
+The `run_app.sh` script handles virtual environment setup and dependency installation.
 
-### For Development
+## Game Setup
 
-Developers can use `run_dev.sh` directly for more control:
+The simulation starts with:
+- 10x10 grid world
+- Robot0 at position (0,0) with goal at (9,9)
+- No obstacles initially
+
+You can:
+- Add up to 10 robots dynamically
+- Click to place/remove obstacles
+- Resize the arena (10x10, 15x15, 20x20)
+- Click robots to select them and set new goals
+
+## Controls
+
+- **SPACE**: Pause/Resume
+- **Click robot**: Select (when paused)
+- **Click empty cell**: Set new goal for selected robot
+- **Click grid**: Add/remove obstacles
+- **Q**: Quit
+
+Control panel buttons handle robot management and arena sizing.
+
+## Adding Your Own Planner
+
+To add a custom path planning algorithm, implement the `PathPlanner` interface:
+
+```python
+from multi_robot_d_star_lite.path_planners.base_planner import PathPlanner
+
+class MyPlanner(PathPlanner):
+    def initialize(self, start, goal):
+        # Initialize your planner
+        pass
+
+    def compute_shortest_path(self):
+        # Compute the path
+        return success, reason
+
+    def get_path(self):
+        # Return list of (x,y) positions
+        return path
+
+    def update_edge_costs(self, changed_cells):
+        # Handle dynamic obstacle changes
+        pass
+
+    def get_algorithm_name(self):
+        return "My Algorithm"
+```
+
+Then use it in the coordinator:
+```python
+coordinator.add_robot("robot0", start=(0,0), goal=(9,9), planner_class=MyPlanner)
+```
+
+## Collision Handling
+
+The system detects three types of collisions:
+- Same-cell: Two robots trying to occupy the same position
+- Swap: Robots exchanging positions
+- Shear: Perpendicular crossing conflicts
+
+When a collision is detected, the simulation pauses. **Collision resolution is a separate planning problem that should be triggered at this point - implementation is a TODO**. Users can manually resolve by changing goals or obstacles.
+
+## Development
 
 ```bash
-# Run the demo
-./run_dev.sh python3 main.py
-
 # Run tests
 ./run_dev.sh pytest tests/
 
-# Run with coverage
-./run_dev.sh pytest tests/ --cov=multi_robot_d_star_lite
-
-# Interactive shell in virtual environment
+# Interactive shell in venv
 ./run_dev.sh bash
 
 # Run any Python script
-./run_dev.sh python3 your_script.py
+./run_dev.sh python3 script.py
 ```
 
+<<<<<<< HEAD
 ## Usage
 
 ### Getting Started
@@ -230,4 +287,8 @@ The implementation uses D* Lite for efficient replanning in dynamic environments
 - Simulation pauses on collision detection for user intervention
 - Stuck robots (no path to goal) are visually indicated and logged
 - Simulation continues when robots are stuck, allowing dynamic resolution
+=======
+## License
+>>>>>>> 716763ffe1614a8d2d1b213e99649f1037e851c2
 
+MIT
