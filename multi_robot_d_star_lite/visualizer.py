@@ -2,6 +2,7 @@ import pygame
 from typing import Dict, Tuple, List
 from .ui_components import ControlPanel
 from .utils.colors import generate_robot_color
+from .game_log import GameLog
 
 class GridVisualizer:
     """
@@ -15,19 +16,26 @@ class GridVisualizer:
         self.width = world.width * cell_size
         self.height = world.height * cell_size
 
-        # Add space for control panel (200 pixels wide on the right)
+        # Add space for log panel (200 pixels wide on the left) and control panel (200 pixels wide on the right)
+        self.log_panel_width = 200
         self.panel_width = 200
-        self.total_width = self.width + self.panel_width
+        self.total_width = self.log_panel_width + self.width + self.panel_width
+
+        # Grid offset due to log panel
+        self.grid_offset_x = self.log_panel_width
 
         pygame.init()
-        self.screen = pygame.display.set_mode((self.total_width, self.height + 50))  # Extra space for info
+        self.screen = pygame.display.set_mode((self.total_width, self.height))  # No extra space for info bar
         pygame.display.set_caption("Multi-Agent D* Lite Demo")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 24)
         self.small_font = pygame.font.Font(None, 18)
 
-        # Create control panel
-        self.control_panel = ControlPanel(self.width, 0, self.panel_width, self.height + 50)
+        # Create game log panel (left side)
+        self.game_log = GameLog(0, 0, self.log_panel_width, self.height)
+
+        # Create control panel (right side, offset by log + grid width)
+        self.control_panel = ControlPanel(self.log_panel_width + self.width, 0, self.panel_width, self.height)
 
         # Colors (RGB values)
         self.colors = {
@@ -47,14 +55,14 @@ class GridVisualizer:
         """Draw grid lines"""
         for x in range(0, self.width, self.cell_size):
             pygame.draw.line(self.screen, self.colors['grid'],
-                           (x, 0), (x, self.height), 1)
+                           (x + self.grid_offset_x, 0), (x + self.grid_offset_x, self.height), 1)
         for y in range(0, self.height, self.cell_size):
             pygame.draw.line(self.screen, self.colors['grid'],
-                           (0, y), (self.width, y), 1)
+                           (self.grid_offset_x, y), (self.grid_offset_x + self.width, y), 1)
 
     def draw_cell(self, x: int, y: int, color_name: str, filled: bool = True):
         """Draw a single cell"""
-        pixel_x = x * self.cell_size
+        pixel_x = x * self.cell_size + self.grid_offset_x
         pixel_y = y * self.cell_size
         color = self.colors.get(color_name, (100, 100, 100))
 
@@ -69,7 +77,7 @@ class GridVisualizer:
 
     def draw_circle(self, x: int, y: int, color_name: str, radius_factor: float = 0.3):
         """Draw a circle in a cell (for robots)"""
-        pixel_x = x * self.cell_size + self.cell_size // 2
+        pixel_x = x * self.cell_size + self.cell_size // 2 + self.grid_offset_x
         pixel_y = y * self.cell_size + self.cell_size // 2
         radius = int(self.cell_size * radius_factor)
         color = self.colors.get(color_name, (100, 100, 100))
@@ -85,7 +93,7 @@ class GridVisualizer:
             return
 
         color = self.colors.get(color_name, (100, 100, 100))
-        points = [(x * self.cell_size + self.cell_size // 2,
+        points = [(x * self.cell_size + self.cell_size // 2 + self.grid_offset_x,
                   y * self.cell_size + self.cell_size // 2)
                  for x, y in path]
 
@@ -95,7 +103,7 @@ class GridVisualizer:
         for point in points[1:-1]:  # Skip start and end
             pygame.draw.circle(self.screen, color, point, 4)
 
-    def render(self, coordinator=None, paths=None, step_count=0, info_text="", selected_robot=None, paused=False):
+    def render(self, coordinator=None, paths=None, step_count=0, info_text="", selected_robot=None, paused=False, stuck_robots=None):
         """
         Main rendering function.
         Shows current state of the world and robot paths.
@@ -145,11 +153,14 @@ class GridVisualizer:
                 else:
                     goal_num = "?"
                 label = self.font.render(f'G{goal_num}', True, self.colors[goal_color])
-                label_x = goal_pos[0] * self.cell_size + self.cell_size // 4
+                label_x = goal_pos[0] * self.cell_size + self.cell_size // 4 + self.grid_offset_x
                 label_y = goal_pos[1] * self.cell_size + self.cell_size // 4
                 self.screen.blit(label, (label_x, label_y))
 
         # Draw robots
+        if stuck_robots is None:
+            stuck_robots = []
+
         for robot_id, pos in self.world.robot_positions.items():
             # Get color dynamically for all robots
             color = generate_robot_color(robot_id)
@@ -161,7 +172,13 @@ class GridVisualizer:
             if selected_robot == robot_id:
                 # Draw selection highlight (yellow border)
                 pygame.draw.rect(self.screen, (255, 255, 0),
-                               (pos[0] * self.cell_size, pos[1] * self.cell_size,
+                               (pos[0] * self.cell_size + self.grid_offset_x, pos[1] * self.cell_size,
+                                self.cell_size, self.cell_size), 3)
+            # If this robot is stuck, draw red border
+            elif robot_id in stuck_robots:
+                # Draw stuck indicator (red border)
+                pygame.draw.rect(self.screen, (255, 0, 0),
+                               (pos[0] * self.cell_size + self.grid_offset_x, pos[1] * self.cell_size,
                                 self.cell_size, self.cell_size), 3)
 
             self.draw_circle(pos[0], pos[1], robot_color)
@@ -173,32 +190,18 @@ class GridVisualizer:
                 label_text = '?'
             label = self.font.render(label_text, True, (255, 255, 255))
             label_rect = label.get_rect(center=(
-                pos[0] * self.cell_size + self.cell_size // 2,
+                pos[0] * self.cell_size + self.cell_size // 2 + self.grid_offset_x,
                 pos[1] * self.cell_size + self.cell_size // 2
             ))
             self.screen.blit(label, label_rect)
 
         # No pause overlay - keep grid visible when paused
 
-        # Draw info bar at bottom (extend across full width)
-        info_surface = pygame.Surface((self.total_width, 50))
-        info_surface.fill((240, 240, 240))
+        # Add step count and current status to game log title or as periodic updates
+        # (info_text is now only used for immediate status, logged separately)
 
-        # Step counter
-        step_text = self.font.render(f"Step: {step_count}", True, (0, 0, 0))
-        info_surface.blit(step_text, (10, 10))
-
-        # Info text
-        if info_text:
-            info = self.small_font.render(info_text, True, (100, 100, 100))
-            info_surface.blit(info, (150, 15))
-
-        # Controls hint
-        controls = self.small_font.render("SPACE: Pause | When paused: Click robot → Click to set goal | Q: Quit",
-                                         True, (100, 100, 100))
-        info_surface.blit(controls, (10, 30))
-
-        self.screen.blit(info_surface, (0, self.height))
+        # Draw game log panel
+        self.game_log.render(self.screen)
 
         # Draw control panel
         self.control_panel.draw(self.screen)
@@ -231,17 +234,22 @@ class GridVisualizer:
                 elif event.key == pygame.K_q:
                     events['quit'] = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
+                # Handle scroll events for game log
+                if self.game_log.handle_event(event):
+                    continue  # Event was handled by game log
+
                 # Get grid coordinates from mouse position
                 mx, my = event.pos
 
                 # Check if click is in control panel area
-                if mx >= self.width:  # Click is in panel area
+                if mx >= self.log_panel_width + self.width:  # Click is in control panel area
                     # Handle control panel clicks
                     panel_event = self.control_panel.handle_event(event)
                     if panel_event:
                         events['panel_event'] = panel_event
-                elif my < self.height:  # Only if clicking in grid area
-                    grid_x = mx // self.cell_size
+                elif mx >= self.log_panel_width and mx < self.log_panel_width + self.width and my < self.height:  # Click in grid area
+                    # Adjust mouse position for grid offset
+                    grid_x = (mx - self.grid_offset_x) // self.cell_size
                     grid_y = my // self.cell_size
                     if 0 <= grid_x < self.world.width and 0 <= grid_y < self.world.height:
                         if event.button == 1:  # Left click
@@ -251,6 +259,10 @@ class GridVisualizer:
                             events['right_click'] = (grid_x, grid_y)
 
         return events
+
+    def add_log_message(self, text: str, msg_type: str = 'info'):
+        """Add a message to the game log."""
+        self.game_log.add_message(text, msg_type)
 
     def cleanup(self):
         """Clean up pygame resources"""

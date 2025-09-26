@@ -16,11 +16,14 @@ A Python implementation of the D* Lite algorithm for multi-robot path planning w
   - Shear collisions (perpendicular crossing conflicts)
 - **Dynamic Obstacles**: Real-time obstacle addition/removal with automatic replanning
 - **Interactive Visualization**: Pygame-based GUI with real-time simulation
+- **Game Log Panel**: Scrollable event log with timestamped, color-coded messages
+- **Stuck Robot Detection**: Visual indicators when robots cannot reach their goals
 - **Enhanced Control Panel**: Comprehensive controls for:
   - Adding/removing robots dynamically
   - Resizing arena (5x5 to 30x30)
   - Speed control
   - Clear all obstacles / Reset simulation
+- **Three-Panel Layout**: Clean interface with Log (left), Grid (center), and Control Panel (right)
 - **Dynamic Color Generation**: Automatic color assignment for unlimited robots
 - **Visual Test Format**: Intuitive ASCII-based test case definitions
 
@@ -135,6 +138,7 @@ should_continue, collision = coordinator.step_simulation()
   - **C**: Copy grid state to clipboard for test cases
 - **While running**:
   - Click to add/remove obstacles dynamically
+- **Mouse Wheel**: Scroll through game log messages
 - **Q**: Quit
 
 **Control Panel**:
@@ -175,19 +179,23 @@ multi-robot-d-star-lite/
 │   ├── world.py                # Grid environment with resizing
 │   ├── dstar_lite.py           # D* Lite algorithm
 │   ├── coordinator.py          # Multi-agent coordination & robot management
-│   ├── visualizer.py           # Pygame visualization
+│   ├── visualizer.py           # Pygame visualization with three-panel layout
+│   ├── game_log.py             # Scrollable game log component
 │   ├── ui_components.py        # Control panel UI components
 │   ├── simple_visualizer.py    # ASCII visualization
 │   └── utils/
 │       ├── export_grid.py      # Grid export utilities
 │       ├── parse_test_grid.py  # Test case parser
 │       └── colors.py           # Dynamic color generation
-├── tests/                       # Test suite
+├── tests/                       # Test suite (118+ tests)
 │   ├── test_world.py           # World tests
 │   ├── test_collision.py       # Collision detection tests
 │   ├── test_placement_validation.py # Placement validation tests
 │   ├── test_robot_management.py    # Robot management tests
 │   ├── test_world_resize.py        # World resizing tests
+│   ├── test_pausing_behavior.py    # Stuck robot detection tests
+│   ├── test_game_log.py            # Game log component tests
+│   ├── test_visualizer_with_log.py # Visualizer integration tests
 │   ├── test_color_generation.py    # Color generation tests
 │   ├── test_control_panel.py       # UI component tests
 │   ├── test_export.py          # Export/import tests
@@ -232,23 +240,6 @@ The implementation uses D* Lite for efficient replanning in dynamic environments
 - Robots plan paths independently without considering other robots as obstacles
 - Comprehensive collision detection catches conflicts at runtime
 - Simulation pauses on collision detection for user intervention
-- Series movement (convoy) and parallel movement are correctly allowed
+- Stuck robots (no path to goal) are visually indicated and logged
+- Simulation continues when robots are stuck, allowing dynamic resolution
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- D* Lite algorithm by Sven Koenig and Maxim Likhachev
-- Built with Python, NumPy, and Pygame

@@ -5,7 +5,7 @@ with collision detection on a 2D grid.
 """
 
 from .world import GridWorld, CellType
-from .dstar_lite import DStarLite
+from .path_planners.dstar_lite_planner import DStarLitePlanner
 from .coordinator import MultiAgentCoordinator
 from .visualizer import GridVisualizer
 from .simple_visualizer import SimpleVisualizer
@@ -15,7 +15,7 @@ __author__ = "Your Name"
 __all__ = [
     "GridWorld",
     "CellType",
-    "DStarLite",
+    "DStarLitePlanner",
     "MultiAgentCoordinator",
     "GridVisualizer",
     "SimpleVisualizer"

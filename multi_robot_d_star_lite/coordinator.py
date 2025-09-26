@@ -1,5 +1,5 @@
 from typing import Dict, List, Tuple, Set, Optional
-from .dstar_lite import DStarLite
+from .path_planners import get_planner_class, DEFAULT_PLANNER, get_planner_names
 
 class MultiAgentCoordinator:
     """
@@ -9,10 +9,11 @@ class MultiAgentCoordinator:
 
     def __init__(self, world):
         self.world = world
-        self.planners = {}  # robot_id -> DStarLite instance
+        self.planners = {}  # robot_id -> PathPlanner instance
         self.paths = {}  # robot_id -> current planned path
         self.current_positions = {}  # robot_id -> current position
         self.goals = {}  # robot_id -> goal position
+        self.robot_algorithms = {}  # robot_id -> algorithm name
 
     def add_robot(self, robot_id: str, start: Tuple[int, int],
                   goal: Tuple[int, int]) -> bool:
@@ -32,12 +33,14 @@ class MultiAgentCoordinator:
                 print(f"Cannot add {robot_id}: Position {start} is occupied by {existing_robot_id}")
                 return False
 
-        # Create planner for this robot
-        planner = DStarLite(self.world, robot_id)
+        # Create planner for this robot using default algorithm
+        planner_class = get_planner_class(DEFAULT_PLANNER)
+        planner = planner_class(self.world, robot_id)
         planner.initialize(start, goal)
 
         # Store robot information
         self.planners[robot_id] = planner
+        self.robot_algorithms[robot_id] = DEFAULT_PLANNER
         self.current_positions[robot_id] = start
         self.goals[robot_id] = goal
         self.world.robot_positions[robot_id] = start
@@ -174,31 +177,35 @@ class MultiAgentCoordinator:
                 print(f"Warning: No path found for robot {robot_id} - Reason: {reason}")
                 self.paths[robot_id] = []
 
-    def step_simulation(self) -> Tuple[bool, Optional[Tuple[str, str, str]]]:
+    def step_simulation(self) -> Tuple[bool, Optional[Tuple[str, str, str]], List[str]]:
         """
         Move all robots one step along their paths.
-        Returns (should_continue, collision_info).
+        Returns (should_continue, collision_info, stuck_robots).
         should_continue is False if all robots are at goal.
         collision_info is None or (robot1, robot2, collision_type) if collision would occur.
+        stuck_robots is a list of robot IDs that have no valid path but are not at goal.
         """
         # First check for collisions in next step
         collision = self.detect_collision_at_next_step()
         if collision:
-            return True, collision  # Don't move, report collision
+            return True, collision, []  # Don't move, report collision, no stuck robots
 
         any_robot_moving = False
+        stuck_robots = []
 
         # Move all robots one step along their current paths
         for robot_id, path in self.paths.items():
-            if not path:
-                continue
-
             current_pos = self.current_positions[robot_id]
             goal_pos = self.goals[robot_id]
 
             # Check if at goal
             if current_pos == goal_pos:
-                continue
+                continue  # At goal, not stuck
+
+            # Check if robot has no path (stuck)
+            if not path or len(path) == 0:
+                stuck_robots.append(robot_id)
+                continue  # Can't move, but track as stuck
 
             any_robot_moving = True
 
@@ -217,10 +224,14 @@ class MultiAgentCoordinator:
                 self.paths[robot_id] = path[1:]
 
         # After moving, recompute paths from new positions
-        if any_robot_moving:
+        if any_robot_moving or stuck_robots:
             self.recompute_paths()
 
-        return any_robot_moving, None
+        # Determine if we should continue
+        # Continue if any robot is moving OR if any robot is stuck (waiting for path)
+        should_continue = any_robot_moving or len(stuck_robots) > 0
+
+        return should_continue, None, stuck_robots
 
     def add_dynamic_obstacle(self, x: int, y: int):
         """
@@ -268,6 +279,48 @@ class MultiAgentCoordinator:
         print(f"Set new goal for {robot_id}: {new_goal}")
         return True
 
+    def change_robot_planner(self, robot_id: str, planner_name: str) -> bool:
+        """
+        Change the path planner for a specific robot.
+
+        Args:
+            robot_id: ID of the robot
+            planner_name: Name of the new planner algorithm
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if robot_id not in self.planners:
+            print(f"Warning: Robot {robot_id} not found")
+            return False
+
+        planner_class = get_planner_class(planner_name)
+        if not planner_class:
+            print(f"Warning: Unknown planner {planner_name}")
+            return False
+
+        # Create new planner with current position and goal
+        current_pos = self.current_positions[robot_id]
+        goal = self.goals[robot_id]
+
+        new_planner = planner_class(self.world, robot_id)
+        new_planner.initialize(current_pos, goal)
+
+        # Replace the planner
+        self.planners[robot_id] = new_planner
+        self.robot_algorithms[robot_id] = planner_name
+
+        # Recompute path with new planner
+        success, reason = new_planner.compute_shortest_path()
+        if success:
+            self.paths[robot_id] = new_planner.get_path()
+        else:
+            self.paths[robot_id] = []
+            print(f"Warning: No path found with {planner_name} for {robot_id} - {reason}")
+
+        print(f"Changed {robot_id} to use {planner_name} algorithm")
+        return True
+
     def remove_robot(self, robot_id: str) -> bool:
         """
         Remove a robot from the system.
@@ -281,6 +334,7 @@ class MultiAgentCoordinator:
         del self.planners[robot_id]
         del self.current_positions[robot_id]
         del self.goals[robot_id]
+        del self.robot_algorithms[robot_id]
 
         if robot_id in self.paths:
             del self.paths[robot_id]
@@ -323,6 +377,7 @@ class MultiAgentCoordinator:
         self.paths.clear()
         self.current_positions.clear()
         self.goals.clear()
+        self.robot_algorithms.clear()
         self.world.robot_positions.clear()
 
         print("Cleared all robots")

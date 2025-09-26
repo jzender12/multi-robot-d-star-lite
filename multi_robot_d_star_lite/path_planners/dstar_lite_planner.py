@@ -1,8 +1,10 @@
 import heapq
 from typing import Tuple, List, Set, Optional, Dict
 from collections import defaultdict
+from .base_planner import PathPlanner
 
-class DStarLite:
+
+class DStarLitePlanner(PathPlanner):
     """
     D* Lite pathfinder for a single robot.
 
@@ -15,8 +17,7 @@ class DStarLite:
     """
 
     def __init__(self, world, robot_id: str):
-        self.world = world
-        self.robot_id = robot_id
+        super().__init__(world, robot_id)
 
         # Algorithm state
         self.g = defaultdict(lambda: float('inf'))
@@ -24,10 +25,6 @@ class DStarLite:
         self.km = 0  # Key modifier for maintaining priority queue consistency
         self.open_list = []  # Priority queue
         self.open_set = set()  # For quick membership testing
-
-        # Path planning state
-        self.start = None
-        self.goal = None
         self.last_start = None
 
     def calculate_key(self, s: Tuple[int, int]) -> Tuple[float, float]:
@@ -238,3 +235,6 @@ class DStarLite:
             current = best_neighbor
 
         return path
+    def get_algorithm_name(self) -> str:
+        """Return the name of this algorithm."""
+        return "D* Lite"

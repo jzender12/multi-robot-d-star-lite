@@ -8,7 +8,6 @@ This allows the package to be run as a module: python -m multi_robot_d_star_lite
 import pygame
 import time
 from .world import GridWorld
-from .dstar_lite import DStarLite
 from .coordinator import MultiAgentCoordinator
 from .visualizer import GridVisualizer
 from .utils.export_grid import export_to_visual_format, copy_to_clipboard
@@ -39,6 +38,11 @@ def main():
     visualizer = GridVisualizer(world)
     visualizer.control_panel.update_robot_count(len(coordinator.planners))
     visualizer.control_panel.set_paused(True)  # Start paused
+
+    # Add initial messages to game log
+    visualizer.add_log_message("Multi-Agent D* Lite Demo started", "success")
+    visualizer.add_log_message("Grid: 10x10, Robot0 at (0,0) → (9,9)", "info")
+    visualizer.add_log_message("Controls: SPACE=Pause, Click=Obstacles/Goals", "info")
 
     # Run simulation
     print("\n" + "="*50)
@@ -76,8 +80,10 @@ def main():
             visualizer.control_panel.set_paused(paused)  # Update control panel
             if paused:
                 info_text = "PAUSED - Click robot to select, then click to set goal"
+                visualizer.add_log_message("Simulation paused", "warning")
             else:
                 info_text = "Running - Robots navigating using D* Lite"
+                visualizer.add_log_message("Simulation resumed", "success")
             print("PAUSED" if paused else "RESUMED")
 
         elif events.get('c', False) and paused:
@@ -118,12 +124,14 @@ def main():
                         if success:
                             coordinator.recompute_paths()
                             info_text = f"Added {robot_id} at {start_pos} with goal {goal_pos}"
+                            visualizer.add_log_message(f"Added {robot_id} at {start_pos} → {goal_pos}", "success")
                             visualizer.control_panel.update_robot_count(len(coordinator.planners))
                             # Disable Add Robot button if we've reached 10 robots
                             if len(coordinator.planners) >= 10:
                                 visualizer.control_panel.buttons["Add Robot"].enabled = False
                         else:
                             info_text = f"Failed to add {robot_id}"
+                            visualizer.add_log_message(f"Failed to add {robot_id}", "error")
                 else:
                     info_text = "Not enough free space for a new robot"
 
@@ -140,6 +148,7 @@ def main():
                     success = coordinator.remove_robot(robot_to_remove)
                     if success:
                         info_text = f"Removed {robot_to_remove}"
+                        visualizer.add_log_message(f"Removed {robot_to_remove}", "info")
                         selected_robot = None
                         visualizer.control_panel.update_robot_count(len(coordinator.planners))
                         # Re-enable Add Robot button if we're below 10 robots
@@ -147,6 +156,7 @@ def main():
                             visualizer.control_panel.buttons["Add Robot"].enabled = True
                     else:
                         info_text = f"Failed to remove {robot_to_remove}"
+                        visualizer.add_log_message(f"Failed to remove {robot_to_remove}", "error")
                 else:
                     info_text = "Cannot remove robot0 (minimum 1 robot required)"
 
@@ -221,9 +231,11 @@ def main():
                     success = coordinator.set_new_goal(selected_robot, (x, y))
                     if success:
                         info_text = f"New goal set for {selected_robot} at ({x}, {y}) - Press SPACE to resume"
+                        visualizer.add_log_message(f"{selected_robot} goal changed to ({x}, {y})", "info")
                         selected_robot = None  # Clear selection
                     else:
                         info_text = "Cannot place goal there (obstacle or another robot's goal)"
+                        visualizer.add_log_message("Invalid goal location", "error")
                 else:
                     info_text = "Cannot place goal on obstacle"
 
@@ -232,7 +244,8 @@ def main():
                 robot = coordinator.get_robot_at_position((x, y))
                 if robot:
                     selected_robot = robot
-                    info_text = f"Selected {robot} - Click to set new goal"
+                    algorithm = coordinator.robot_algorithms.get(robot, "Unknown")
+                    info_text = f"Selected {robot} ({algorithm}) - Click to set new goal"
                 else:
                     # Not on a robot, toggle obstacle
                     # Check if position is a goal or robot
@@ -263,6 +276,7 @@ def main():
                 if (x, y) in world.static_obstacles:
                     world.remove_obstacle(x, y)
                     info_text = f"Removed obstacle at ({x}, {y})"
+                    visualizer.add_log_message(f"Removed obstacle at ({x}, {y})", "info")
                     # Pass the changed cell so D* Lite can update properly
                     coordinator.recompute_paths(changed_cells={(x, y)})
                 elif is_robot_pos:
@@ -272,6 +286,7 @@ def main():
                 else:
                     world.add_obstacle(x, y)
                     info_text = f"Added obstacle at ({x}, {y})"
+                    visualizer.add_log_message(f"Added obstacle at ({x}, {y})", "info")
                     # Pass the changed cell so D* Lite can update properly
                     coordinator.recompute_paths(changed_cells={(x, y)})
 
@@ -279,7 +294,7 @@ def main():
         current_time = time.time()
         if not paused and current_time - last_step_time > 1.0 / sim_speed:
             # Move robots one step
-            should_continue, collision = coordinator.step_simulation()
+            should_continue, collision, stuck_robots = coordinator.step_simulation()
 
             if collision:
                 # Collision detected - pause and show warning
@@ -295,11 +310,30 @@ def main():
                 info_text = collision_messages.get(collision_type, f"COLLISION ({collision_type})! {robot1} and {robot2} - PAUSED")
                 print(f"⚠ Collision detected: {collision_type.upper()}")
                 print(f"  {info_text}")
+                visualizer.add_log_message(f"COLLISION: {robot1} and {robot2} ({collision_type})", "collision")
                 paused = True
+                visualizer.control_panel.set_paused(paused)  # Sync UI state
+            elif stuck_robots:
+                # Some robots are stuck but simulation continues
+                step_count += 1
+
+                # Create informative message about stuck robots
+                if len(stuck_robots) == 1:
+                    info_text = f"{stuck_robots[0]} stuck - no path to goal"
+                    visualizer.add_log_message(f"{stuck_robots[0]} stuck - no path to goal", "warning")
+                else:
+                    info_text = f"{len(stuck_robots)} robots stuck - no paths to goals"
+                    visualizer.add_log_message(f"{len(stuck_robots)} robots stuck: {', '.join(stuck_robots)}", "warning")
+
+                # Don't pause, just inform user
+                print(f"⚠ Stuck robots: {', '.join(stuck_robots)}")
             elif should_continue:
                 step_count += 1
 
-                # Check if both robots reached goals
+                # Normal movement, no stuck robots
+                info_text = "Running - Robots navigating using D* Lite"
+
+                # Check if all robots reached their goals
                 all_at_goal = all(
                     coordinator.current_positions[rid] == coordinator.goals[rid]
                     for rid in coordinator.planners.keys()
@@ -308,15 +342,20 @@ def main():
                 if all_at_goal:
                     info_text = "SUCCESS! All robots reached their goals!"
                     print(info_text)
+                    visualizer.add_log_message("All robots reached their goals!", "success")
                     paused = True
+                    visualizer.control_panel.set_paused(paused)  # Sync UI state
             else:
+                # should_continue is False and no stuck robots means all at goal
                 info_text = "All robots at goal positions"
                 paused = True
+                visualizer.control_panel.set_paused(paused)  # Sync UI state
 
             last_step_time = current_time
 
-        # Render current state
-        visualizer.render(coordinator, coordinator.paths, step_count, info_text, selected_robot, paused)
+        # Render current state (pass stuck_robots if available)
+        stuck_robots_to_display = stuck_robots if not paused and 'stuck_robots' in locals() else []
+        visualizer.render(coordinator, coordinator.paths, step_count, info_text, selected_robot, paused, stuck_robots_to_display)
         visualizer.clock.tick(60)  # 60 FPS
 
     visualizer.cleanup()

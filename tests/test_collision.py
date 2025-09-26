@@ -7,7 +7,7 @@ Loads test cases from test_cases.txt and runs appropriate test logic.
 from colorama import init, Fore, Style
 from multi_robot_d_star_lite.utils.parse_test_grid import load_test_cases, setup_from_visual
 from multi_robot_d_star_lite.simple_visualizer import SimpleVisualizer
-from multi_robot_d_star_lite.dstar_lite import DStarLite
+from multi_robot_d_star_lite.path_planners.dstar_lite_planner import DStarLitePlanner
 import sys
 
 # Initialize colorama
@@ -55,7 +55,7 @@ def run_single_robot_test(test_name, grid_text):
     print(f"Obstacles: {len(world.static_obstacles)}")
 
     # Create D* Lite planner
-    planner = DStarLite(world, "robot1")
+    planner = DStarLitePlanner(world, "robot1")
     planner.initialize(start, goal)
 
     # Special handling for dynamic test

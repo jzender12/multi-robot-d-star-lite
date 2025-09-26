@@ -21,9 +21,13 @@ D* Lite maintains two distance values for each cell: the g-value (current best d
    - **Same-Cell**: Both robots trying to enter the same cell
    - **Swap**: Robots exchanging positions
    - **Shear**: Robot entering cell that another is leaving perpendicularly
-3. **Dynamic Replanning**: When obstacles are added/removed, all robots replan using D* Lite's incremental updates
-4. **Clean Slate Resizing**: Arena resize clears everything and places robot1 at start
-5. **Duplicate Prevention**: Robots cannot share starting positions
+3. **Stuck Robot Handling**: Robots unable to reach goals are visually indicated and logged
+   - Simulation continues without pausing
+   - Red border indicates stuck robots
+   - Game log shows warning messages
+4. **Dynamic Replanning**: When obstacles are added/removed, all robots replan using D* Lite's incremental updates
+5. **Clean Slate Resizing**: Arena resize clears everything and places robot1 at start
+6. **Duplicate Prevention**: Robots cannot share starting positions
 
 ## Project Structure
 
@@ -34,7 +38,8 @@ multi-robot-d-star-lite/
 │   ├── world.py                # Grid environment with 4-connected movement
 │   ├── dstar_lite.py           # Core D* Lite algorithm (iteration limit: width*height*100)
 │   ├── coordinator.py          # Multi-agent coordination with collision detection
-│   ├── visualizer.py           # Pygame visualization with interactive controls
+│   ├── visualizer.py           # Pygame visualization with three-panel layout
+│   ├── game_log.py             # Scrollable game log component with timestamps
 │   ├── ui_components.py        # Button and ControlPanel UI components
 │   ├── simple_visualizer.py    # ASCII visualization for debugging
 │   └── utils/
@@ -42,7 +47,7 @@ multi-robot-d-star-lite/
 │       ├── export_grid.py      # Export current state to visual format
 │       ├── parse_test_grid.py  # Parser for visual test format
 │       └── colors.py           # Dynamic color generation for robots
-├── tests/                       # All test files
+├── tests/                       # All test files (118+ tests)
 │   ├── __init__.py
 │   ├── requirements.txt        # Test-specific dependencies
 │   ├── test_world.py           # Grid world functionality tests
@@ -50,6 +55,9 @@ multi-robot-d-star-lite/
 │   ├── test_placement_validation.py  # Placement validation tests
 │   ├── test_robot_management.py      # Robot add/remove tests
 │   ├── test_world_resize.py          # Arena resizing tests
+│   ├── test_pausing_behavior.py      # Stuck robot detection tests (11 tests)
+│   ├── test_game_log.py              # Game log component tests (17 tests)
+│   ├── test_visualizer_with_log.py   # Visualizer integration tests
 │   ├── test_color_generation.py      # Color generation tests
 │   ├── test_control_panel.py         # UI component tests
 │   ├── test_export.py          # Export/import test
@@ -95,7 +103,9 @@ Key methods:
   2. **Swap collisions**: Robots exchanging positions
   3. **Shear collisions**: Perpendicular crossing (one enters as another exits)
   - Note: Robots moving in the same direction (series/convoy) are correctly allowed
-- `step_simulation()`: Moves robots and reports collisions without auto-resolution
+- `step_simulation()`: Moves robots, detects collisions, and identifies stuck robots
+  - Returns tuple: (should_continue, collision_info, stuck_robots)
+  - Stuck robots continue simulation without pausing
 - `set_new_goal()`: Sets new goal with validation:
   - Returns `True` if successful, `False` if invalid
   - Prevents goals on obstacles
@@ -109,13 +119,26 @@ Key methods:
 
 ### Visualization (visualizer.py & __main__.py)
 Interactive features:
-- **Start paused**: Shows initial setup with clear "PAUSED" overlay
+- **Three-Panel Layout**: Game log (left, 200px), Grid (center), Control panel (right, 200px)
+- **Start paused**: Shows initial setup for easier scenario building
 - **Dynamic goal setting**: While paused, click robot then click to set new goal
 - **Obstacle manipulation**: Click to add/remove obstacles with validation
 - **Placement validation**: Prevents invalid placements:
   - Cannot place obstacles on robots or goals
   - Cannot place goals on obstacles or other robot goals
-- **Visual feedback**: Selected robots highlighted, paths shown in different colors
+- **Visual feedback**:
+  - Selected robots highlighted with yellow border
+  - Stuck robots indicated with red border
+  - Paths shown in robot-specific colors
+- **Coordinate transformation**: Mouse clicks adjusted for log panel offset (200px)
+
+### Game Log (game_log.py)
+- **Scrollable log panel**: Displays simulation events with timestamps
+- **Message types**: info, warning, error, success, collision (each with unique colors)
+- **Auto-scrolling**: Automatically scrolls to latest messages
+- **Manual scrolling**: Mouse wheel support with auto-scroll disable
+- **Message limit**: Maintains last 100 messages for performance
+- **Word wrapping**: Long messages wrapped to fit panel width
 
 ### UI Components (ui_components.py)
 - **Button class**: Interactive buttons with hover/click states
@@ -135,6 +158,26 @@ Interactive features:
 - **Color caching**: Consistent colors across sessions
 
 **Note**: `main.py` now simply imports from `__main__.py` to avoid code duplication
+
+## Recent Features (Added via TDD)
+
+### Stuck Robot Detection
+- **Problem**: Robots would appear paused when goals blocked but UI showed "Running"
+- **Solution**: Added stuck robot detection that continues simulation
+- **Implementation**:
+  - `coordinator.step_simulation()` returns stuck robots list
+  - Visual red border indicator for stuck robots
+  - Warning messages in game log
+  - Simulation continues without pausing
+
+### Game Log Panel
+- **Problem**: Status messages at bottom were hard to track
+- **Solution**: Added dedicated scrollable log panel on left side
+- **Implementation**:
+  - 200px wide panel with timestamp support
+  - Color-coded messages by type
+  - Auto-scroll with manual override
+  - Mouse wheel scrolling support
 
 ## Installation and Setup
 
@@ -281,7 +324,7 @@ During simulation, press 'C' when paused to copy the current grid state to clipb
 ## Test-Driven Development
 
 This project follows TDD principles with comprehensive test coverage:
-- **30+ passing tests** for core functionality
+- **118+ passing tests** for core functionality
 - Test files for each major component
 - Visual test format for complex scenarios
 - Tests written BEFORE implementation
@@ -290,6 +333,9 @@ This project follows TDD principles with comprehensive test coverage:
 - Robot management: 13 tests - duplicate prevention, add/remove
 - World resizing: 17 tests - clean slate behavior
 - Placement validation: 11 tests - goal/obstacle validation
+- Stuck robot detection: 11 tests - detection, recovery, simulation continuity
+- Game log: 17 tests - scrolling, timestamps, message handling
+- Visualizer integration: Tests for three-panel layout and coordinate transformation
 - Color generation: Mock tests for dynamic colors
 - UI components: Mock tests for control panel
 
