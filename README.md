@@ -28,54 +28,41 @@ A Python implementation of the D* Lite algorithm for multi-robot path planning w
 - **Dynamic Color Generation**: Automatic color assignment for unlimited robots
 - **Visual Test Format**: Intuitive ASCII-based test case definitions
 
-## Installation
+## Quick Start
 
-### Method 1: Install from GitHub with pip (Recommended for Users)
-
-Install directly from GitHub without cloning:
-
-```bash
-# Install the package and all dependencies
-pip install git+https://github.com/jzender12/multi-robot-d-star-lite.git
-
-# Run the demo as a Python module
-python -m multi_robot_d_star_lite
-```
-
-### Method 2: Clone and Use run_dev.sh (Recommended for Development)
-
-The easiest way for development is using the provided script:
+The easiest way to get started:
 
 ```bash
 git clone https://github.com/jzender12/multi-robot-d-star-lite.git
 cd multi-robot-d-star-lite
-./run_dev.sh python3 main.py
+./run_app.sh
 ```
 
-The `run_dev.sh` script automatically:
+That's it! The `run_app.sh` script handles everything:
 - Creates/activates a virtual environment
 - Installs all dependencies
-- Runs your command
+- Launches the demo
 - Cleans up on exit
 
-### Method 3: Manual Installation (For Development)
+### For Development
+
+Developers can use `run_dev.sh` directly for more control:
 
 ```bash
-# Clone the repository
-git clone https://github.com/jzender12/multi-robot-d-star-lite.git
-cd multi-robot-d-star-lite
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install package in editable mode
-pip install -e .
-
 # Run the demo
-python main.py
-# Or as a module
-python -m multi_robot_d_star_lite
+./run_dev.sh python3 main.py
+
+# Run tests
+./run_dev.sh pytest tests/
+
+# Run with coverage
+./run_dev.sh pytest tests/ --cov=multi_robot_d_star_lite
+
+# Interactive shell in virtual environment
+./run_dev.sh bash
+
+# Run any Python script
+./run_dev.sh python3 your_script.py
 ```
 
 ## Usage
@@ -94,14 +81,10 @@ Build your scenario by:
 
 ### Running the Interactive Demo
 
-After installation, you can run the demo in several ways:
+Simply run:
 
 ```bash
-# If installed from GitHub with pip
-python -m multi_robot_d_star_lite
-
-# If cloned for development
-./run_dev.sh python3 main.py
+./run_app.sh
 ```
 
 ### Using in Your Own Python Code
