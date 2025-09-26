@@ -123,6 +123,9 @@ Interactive features:
 - **Start paused**: Shows initial setup for easier scenario building
 - **Dynamic goal setting**: While paused, click robot then click to set new goal
 - **Obstacle manipulation**: Click to add/remove obstacles with validation
+  - **Place Mode**: Click individual cells to toggle obstacles (default)
+  - **Draw Mode**: Click and drag to continuously place obstacles
+  - Toggle modes with 'O' key or control panel button
 - **Placement validation**: Prevents invalid placements:
   - Cannot place obstacles on robots or goals
   - Cannot place goals on obstacles or other robot goals
@@ -146,6 +149,7 @@ Interactive features:
   - Add/Remove robot buttons
   - Arena size presets (5x5, 10x10, 15x15, 20x20)
   - Speed control
+  - Obstacle mode toggle (Place/Draw modes)
   - Clear All / Reset buttons
   - Robot count display
 - **ButtonGroup**: Manages exclusive button selection
@@ -178,6 +182,16 @@ Interactive features:
   - Color-coded messages by type
   - Auto-scroll with manual override
   - Mouse wheel scrolling support
+
+### Obstacle Draw Mode
+- **Problem**: Placing multiple obstacles required many clicks
+- **Solution**: Added draw mode for continuous obstacle placement
+- **Implementation**:
+  - Toggle between Place and Draw modes via button or 'O' key
+  - Place Mode: Click individual cells (default behavior)
+  - Draw Mode: Click and drag to place obstacles continuously
+  - Maintains all placement validation (no obstacles on robots/goals)
+  - Visual mode indicator in control panel
 
 ## Installation and Setup
 
@@ -222,13 +236,14 @@ python3 main.py
 ## Controls
 
 - **SPACE**: Pause/Resume simulation
+- **O**: Toggle obstacle mode (Place/Draw)
 - **While paused**:
   - Click robot to select (yellow highlight)
   - Click empty cell to set new goal
-  - Click to add/remove obstacles
+  - Click to add/remove obstacles (or drag in Draw mode)
   - **C**: Copy current grid state to clipboard
 - **While running**:
-  - Click: Add/remove obstacles
+  - Click: Add/remove obstacles (or drag in Draw mode)
 - **Q**: Quit
 
 **Validation**: The system prevents invalid placements:

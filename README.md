@@ -22,6 +22,7 @@ A Python implementation of the D* Lite algorithm for multi-robot path planning w
   - Adding/removing robots dynamically
   - Resizing arena (5x5 to 30x30)
   - Speed control
+  - Obstacle mode toggle (Place/Draw modes)
   - Clear all obstacles / Reset simulation
 - **Three-Panel Layout**: Clean interface with Log (left), Grid (center), and Control Panel (right)
 - **Dynamic Color Generation**: Automatic color assignment for unlimited robots
@@ -88,7 +89,7 @@ The simulation starts with a clean slate:
 
 Build your scenario by:
 - **Adding robots**: Use the "Add Robot" button
-- **Placing obstacles**: Click on grid cells
+- **Placing obstacles**: Click on grid cells (Place mode) or drag to draw walls (Draw mode)
 - **Resizing arena**: Select size (creates new clean slate)
 
 ### Running the Interactive Demo
@@ -131,10 +132,13 @@ should_continue, collision = coordinator.step_simulation()
 #### Controls
 
 - **SPACE**: Pause/Resume simulation
+- **O**: Toggle obstacle mode (Place/Draw)
 - **While paused**:
   - Click robot to select (yellow highlight)
   - Click empty cell to set new goal
   - Click to add/remove obstacles
+    - **Place Mode**: Click individual cells
+    - **Draw Mode**: Click and drag to draw walls
   - **C**: Copy grid state to clipboard for test cases
 - **While running**:
   - Click to add/remove obstacles dynamically
@@ -144,9 +148,10 @@ should_continue, collision = coordinator.step_simulation()
 **Control Panel**:
 - **Add Robot**: Add new robot at free position
 - **Remove Robot**: Remove selected robot
-- **Arena Size** (5x5, 10x10, 15x15, 20x20): Resize and reset to clean slate
+- **Obstacle Mode**: Toggle between Place and Draw modes
+- **Arena Size** (10x10, 15x15, 20x20): Resize and reset to clean slate
+- **Speed +/-**: Control simulation speed
 - **Reset**: Return to default 10x10 with robot1 only
-- **Clear All**: Remove all obstacles (keeps robots)
 
 **Note**: The system prevents invalid placements:
 - Cannot place obstacles on robots or goals

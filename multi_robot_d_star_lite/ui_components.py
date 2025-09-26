@@ -124,7 +124,8 @@ class ControlPanel:
                  on_remove_robot: Optional[Callable] = None,
                  on_resize: Optional[Callable] = None,
                  on_reset: Optional[Callable] = None,
-                 on_pause_play: Optional[Callable] = None):
+                 on_pause_play: Optional[Callable] = None,
+                 on_obstacle_mode: Optional[Callable] = None):
         """
         Create control panel.
 
@@ -146,6 +147,7 @@ class ControlPanel:
         self.robot_count = 0
         self.speed = 2.0  # Steps per second
         self.paused = True  # Start paused
+        self.obstacle_draw_mode = False  # False = place mode, True = draw mode
 
         # Background color
         self.bg_color = (240, 240, 240)
@@ -208,6 +210,14 @@ class ControlPanel:
         )
         button_y += spacing
 
+        # Obstacle mode toggle button
+        self.buttons["Obstacle Mode"] = Button(
+            button_x, int(button_y), button_width, button_height,
+            "Place Mode",  # Default mode
+            on_obstacle_mode or (lambda: None)
+        )
+        button_y += spacing
+
         # Reset button
         button_y += spacing
         self.buttons["Reset"] = Button(
@@ -253,6 +263,13 @@ class ControlPanel:
         self.paused = paused
         if "Pause/Play" in self.buttons:
             self.buttons["Pause/Play"].text = "⏸ Pause" if not paused else "▶ Play"
+
+    def toggle_obstacle_mode(self):
+        """Toggle between place and draw mode for obstacles."""
+        self.obstacle_draw_mode = not self.obstacle_draw_mode
+        if "Obstacle Mode" in self.buttons:
+            self.buttons["Obstacle Mode"].text = "Draw Mode" if self.obstacle_draw_mode else "Place Mode"
+        return self.obstacle_draw_mode
 
     def handle_event(self, event: pygame.event.Event) -> Optional[str]:
         """
