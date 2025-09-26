@@ -42,7 +42,7 @@ def main():
     # Add initial messages to game log
     visualizer.add_log_message("Multi-Agent D* Lite Demo started", "success")
     visualizer.add_log_message("Grid: 10x10, Robot0 at (0,0) → (9,9)", "info")
-    visualizer.add_log_message("Controls: SPACE=Pause, Click=Obstacles/Goals", "info")
+    visualizer.add_log_message("Controls: SPACE=Pause, O=Mode, Click=Obstacles", "info")
 
     # Run simulation
     print("\n" + "="*50)
@@ -51,6 +51,7 @@ def main():
     print("\nControls:")
     print("  SPACE - Pause/Resume")
     print("  C     - Copy current setup to clipboard (when paused)")
+    print("  O     - Toggle obstacle mode (Place/Draw)")
     print("  Click - Add/remove obstacle")
     print("  When paused:")
     print("    - Click robot to select it")
@@ -97,6 +98,13 @@ def main():
                 info_text = "Failed to copy to clipboard - see console output"
                 print("Could not copy to clipboard. Here's the grid state:")
                 print(grid_export)
+
+        elif events.get('o', False):
+            # Toggle obstacle mode with 'O' key
+            draw_mode = visualizer.control_panel.toggle_obstacle_mode()
+            mode_text = "Draw Mode" if draw_mode else "Place Mode"
+            info_text = f"Obstacle mode: {mode_text}"
+            visualizer.add_log_message(f"Switched to {mode_text}", "info")
 
         elif events.get('panel_event'):
             # Handle control panel events
@@ -209,6 +217,13 @@ def main():
                 sim_speed = visualizer.control_panel.speed
                 info_text = f"Speed: {sim_speed:.1f}/s"
 
+            elif action == "Obstacle Mode":
+                # Toggle obstacle mode between place and draw
+                draw_mode = visualizer.control_panel.toggle_obstacle_mode()
+                mode_text = "Draw Mode" if draw_mode else "Place Mode"
+                info_text = f"Obstacle mode: {mode_text}"
+                visualizer.add_log_message(f"Switched to {mode_text}", "info")
+
             elif action == "Pause/Play":
                 # Toggle pause state
                 paused = not paused
@@ -287,6 +302,21 @@ def main():
                     world.add_obstacle(x, y)
                     info_text = f"Added obstacle at ({x}, {y})"
                     visualizer.add_log_message(f"Added obstacle at ({x}, {y})", "info")
+                    # Pass the changed cell so D* Lite can update properly
+                    coordinator.recompute_paths(changed_cells={(x, y)})
+
+        # Handle mouse motion for draw mode
+        elif events.get('mouse_motion') and visualizer.control_panel.obstacle_draw_mode:
+            x, y = events['mouse_motion']
+            # Only place obstacles if we're in draw mode and not selecting robots
+            if not selected_robot:
+                # Check if position is valid for obstacle
+                is_goal_pos = any(goal == (x, y) for goal in coordinator.goals.values())
+                is_robot_pos = any(pos == (x, y) for pos in coordinator.current_positions.values())
+
+                if not ((x, y) in world.static_obstacles) and not is_goal_pos and not is_robot_pos:
+                    world.add_obstacle(x, y)
+                    # Don't spam log for each cell in draw mode
                     # Pass the changed cell so D* Lite can update properly
                     coordinator.recompute_paths(changed_cells={(x, y)})
 

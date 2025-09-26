@@ -24,6 +24,10 @@ class GridVisualizer:
         # Grid offset due to log panel
         self.grid_offset_x = self.log_panel_width
 
+        # Mouse drag tracking for draw mode
+        self.mouse_dragging = False
+        self.last_drag_cell = None
+
         pygame.init()
         self.screen = pygame.display.set_mode((self.total_width, self.height))  # No extra space for info bar
         pygame.display.set_caption("Multi-Agent D* Lite Demo")
@@ -217,10 +221,14 @@ class GridVisualizer:
             'quit': False,
             'space': False,
             'c': False,
+            'o': False,  # Obstacle mode toggle
             'mouse_click': None,
             'left_click': None,
             'right_click': None,
             'panel_event': None,
+            'mouse_down': None,
+            'mouse_up': False,
+            'mouse_motion': None,
         }
 
         for event in pygame.event.get():
@@ -231,6 +239,8 @@ class GridVisualizer:
                     events['space'] = True
                 elif event.key == pygame.K_c:
                     events['c'] = True
+                elif event.key == pygame.K_o:
+                    events['o'] = True
                 elif event.key == pygame.K_q:
                     events['quit'] = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -255,8 +265,29 @@ class GridVisualizer:
                         if event.button == 1:  # Left click
                             events['left_click'] = (grid_x, grid_y)
                             events['mouse_click'] = (grid_x, grid_y)  # Keep for compatibility
+                            events['mouse_down'] = (grid_x, grid_y)
+                            self.mouse_dragging = True
+                            self.last_drag_cell = (grid_x, grid_y)
                         elif event.button == 3:  # Right click
                             events['right_click'] = (grid_x, grid_y)
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:  # Left button release
+                    events['mouse_up'] = True
+                    self.mouse_dragging = False
+                    self.last_drag_cell = None
+
+            elif event.type == pygame.MOUSEMOTION:
+                if self.mouse_dragging:
+                    mx, my = event.pos
+                    if mx >= self.log_panel_width and mx < self.log_panel_width + self.width and my < self.height:
+                        grid_x = (mx - self.grid_offset_x) // self.cell_size
+                        grid_y = my // self.cell_size
+                        if 0 <= grid_x < self.world.width and 0 <= grid_y < self.world.height:
+                            # Only report motion if we moved to a different cell
+                            if (grid_x, grid_y) != self.last_drag_cell:
+                                events['mouse_motion'] = (grid_x, grid_y)
+                                self.last_drag_cell = (grid_x, grid_y)
 
         return events
 
