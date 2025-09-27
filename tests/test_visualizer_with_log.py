@@ -12,8 +12,8 @@ These tests ensure that:
 import pytest
 import pygame
 from unittest.mock import Mock, patch, MagicMock
-from multi_robot_d_star_lite.world import GridWorld
-from multi_robot_d_star_lite.visualizer import GridVisualizer
+from multi_robot_d_star_lite.core.world import GridWorld
+from multi_robot_d_star_lite.pygame.visualizer import GridVisualizer
 
 
 class TestWindowLayout:

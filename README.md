@@ -1,100 +1,148 @@
-# Multi-Robot D* Lite Path Planning
+# Multi-Robot D* Lite Path Planning System
 
-Multi-robot path planning demo using D* Lite algorithm with collision detection.
+A real-time multi-robot path planning system featuring both **web** and **pygame** interfaces. Watch multiple robots navigate dynamic environments using the D* Lite algorithm with intelligent collision detection and avoidance.
 
-## Requirements
-
-- Python 3.8+
-- python3-venv
-
-## Installation
+## 🚀 Quick Start
 
 ```bash
+# Clone the repository
 git clone https://github.com/jzender12/multi-robot-d-star-lite.git
 cd multi-robot-d-star-lite
-./run_app.sh
+
+# Launch the web interface (recommended)
+./run_dev.sh
+# Opens at http://localhost:5173
+
+# Or launch the pygame interface
+./run_dev.sh pygame
 ```
 
-The `run_app.sh` script handles virtual environment setup and dependency installation.
+That's it! The `run_dev.sh` script handles all setup automatically.
 
-## Game Setup
+## ✨ Features
 
-The simulation starts with:
-- 10x10 grid world
-- Robot0 at position (0,0) with goal at (9,9)
-- No obstacles initially
+- **Dual Interfaces**: Modern web UI and classic pygame visualization
+- **Real-time Path Planning**: D* Lite algorithm with dynamic replanning
+- **Intelligent Collision Detection**: Detects and handles three types of collisions
+- **Partial Pausing System**: Only colliding robots pause while others continue
+- **Dynamic Environment**: Add/remove obstacles and robots during simulation
+- **Multiple Arena Sizes**: 5x5 up to 20x20 grids
+- **Visual Feedback**: Color-coded robots, paths, and collision indicators
 
-You can:
-- Add up to 10 robots dynamically
-- Click to place/remove obstacles
-- Resize the arena (10x10, 15x15, 20x20)
-- Click robots to select them and set new goals
+## 🎮 Controls
 
-## Controls
+### Web Interface
+- **Mouse Click**: Add/remove obstacles, select robots, set goals
+- **Control Panel**: Start/pause, add robots, change speed, resize arena
+- **Real-time Updates**: Watch robots adapt to changes instantly
 
-- **SPACE**: Pause/Resume
-- **Click robot**: Select (when paused)
-- **Click empty cell**: Set new goal for selected robot
-- **Click grid**: Add/remove obstacles
+### Pygame Interface
+- **SPACE**: Pause/Resume simulation
+- **O**: Toggle obstacle mode (Place/Draw)
+- **Click Robot**: Select robot (when paused)
+- **Click Empty**: Set new goal for selected robot
+- **C**: Copy grid state to clipboard (when paused)
 - **Q**: Quit
 
-Control panel buttons handle robot management and arena sizing.
+## 🏗️ Architecture
 
-## Adding Your Own Planner
+The system uses a **unified package architecture** with shared core logic:
 
-To add a custom path planning algorithm, implement the `PathPlanner` interface:
+```
+multi_robot_d_star_lite/
+├── core/              # Shared pathfinding algorithms
+│   ├── world.py       # Grid environment management
+│   ├── coordinator.py # Multi-robot coordination
+│   └── path_planners/ # D* Lite and other algorithms
+├── pygame/            # Pygame visualization
+├── web/               # FastAPI backend + React frontend
+└── utils/             # Shared utilities
+```
+
+## 🤖 How It Works
+
+1. **Independent Planning**: Each robot plans its path using D* Lite
+2. **Collision Detection**: System monitors for potential collisions:
+   - **Same-cell**: Two robots entering the same cell
+   - **Swap**: Robots exchanging positions
+   - **Shear**: Perpendicular crossing conflicts
+3. **Smart Resolution**: Only involved robots pause, others continue
+4. **Dynamic Replanning**: Robots adapt to obstacle changes in real-time
+
+## 🧪 Testing
+
+The project follows Test-Driven Development with 187+ tests:
+
+```bash
+# Run all tests
+./run_tests.sh
+
+# Run specific test suites
+./run_dev.sh pytest tests/web/        # Web interface tests
+./run_dev.sh pytest tests/test_world.py  # Specific test file
+```
+
+## 🔧 Development
+
+### Requirements
+- Python 3.8+
+- Node.js 16+ (for web interface)
+- Virtual environment support
+
+### Installation for Development
+```bash
+# Install development dependencies
+./run_dev.sh pip install -e .
+
+# Run with custom Python scripts
+./run_dev.sh python3 your_script.py
+```
+
+### Adding Custom Path Planners
+
+Implement the `PathPlanner` interface to add your own algorithm:
 
 ```python
-from multi_robot_d_star_lite.path_planners.base_planner import PathPlanner
+from multi_robot_d_star_lite.core.path_planners import PathPlanner
 
 class MyPlanner(PathPlanner):
     def initialize(self, start, goal):
-        # Initialize your planner
+        # Your initialization
         pass
 
     def compute_shortest_path(self):
-        # Compute the path
+        # Your path computation
         return success, reason
 
     def get_path(self):
-        # Return list of (x,y) positions
+        # Return path as list of (x,y) tuples
         return path
-
-    def update_edge_costs(self, changed_cells):
-        # Handle dynamic obstacle changes
-        pass
-
-    def get_algorithm_name(self):
-        return "My Algorithm"
 ```
 
-Then use it in the coordinator:
-```python
-coordinator.add_robot("robot0", start=(0,0), goal=(9,9), planner_class=MyPlanner)
-```
+## 📚 Documentation
 
-## Collision Handling
+- **[CLAUDE.md](CLAUDE.md)**: Detailed technical documentation
+- **[Frontend README](frontend/README.md)**: React application details
+- **[API Documentation](http://localhost:8000/docs)**: FastAPI interactive docs (when running)
 
-The system detects three types of collisions:
-- Same-cell: Two robots trying to occupy the same position
-- Swap: Robots exchanging positions
-- Shear: Perpendicular crossing conflicts
+## 🤝 Contributing
 
-When a collision is detected, the simulation pauses. **Collision resolution is a separate planning problem that should be triggered at this point - implementation is a TODO**. Users can manually resolve by changing goals or obstacles.
+Contributions are welcome! Please:
+1. Write tests first (TDD approach)
+2. Ensure all tests pass: `./run_tests.sh`
+3. Update documentation as needed
+4. Follow existing code patterns
 
-## Development
+## 📄 License
 
-```bash
-# Run tests
-./run_dev.sh pytest tests/
+MIT License - see [LICENSE](LICENSE) file for details
 
-# Interactive shell in venv
-./run_dev.sh bash
+## 🙏 Acknowledgments
 
-# Run any Python script
-./run_dev.sh python3 script.py
-```
+- D* Lite algorithm by Sven Koenig and Maxim Likhachev
+- React + TypeScript community
+- FastAPI for excellent WebSocket support
 
-## License
+---
 
-MIT
+**Note**: This project demonstrates multi-robot coordination without complex frameworks. The key insight: robots are dynamic obstacles, and D* Lite handles obstacles efficiently!

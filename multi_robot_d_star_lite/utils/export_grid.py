@@ -3,8 +3,8 @@
 Export current grid state to visual test case format.
 """
 
-from ..world import GridWorld
-from ..coordinator import MultiAgentCoordinator
+from ..core.world import GridWorld
+from ..core.coordinator import MultiAgentCoordinator
 from typing import Tuple
 
 

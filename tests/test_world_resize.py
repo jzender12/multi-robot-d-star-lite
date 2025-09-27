@@ -6,8 +6,8 @@ Tests dynamic arena size changes while preserving content.
 
 import pytest
 import numpy as np
-from multi_robot_d_star_lite.world import GridWorld
-from multi_robot_d_star_lite.coordinator import MultiAgentCoordinator
+from multi_robot_d_star_lite.core.world import GridWorld
+from multi_robot_d_star_lite.core.coordinator import MultiAgentCoordinator
 
 
 class TestBasicResize:

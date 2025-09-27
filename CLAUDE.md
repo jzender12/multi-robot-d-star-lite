@@ -17,69 +17,103 @@ D* Lite maintains two distance values for each cell: the g-value (current best d
 
 ### Multi-Agent Coordination Strategy
 1. **Independent Planning**: Robots plan paths without considering other robots as obstacles
-2. **Comprehensive Collision Detection**: System detects three collision types and pauses simulation:
+2. **Partial Pausing System**: Only robots involved in collisions pause
    - **Same-Cell**: Both robots trying to enter the same cell
    - **Swap**: Robots exchanging positions
    - **Shear**: Robot entering cell that another is leaving perpendicularly
-3. **Stuck Robot Handling**: Robots unable to reach goals are visually indicated and logged
+3. **Collision Resolution via Obstacles**: Placing obstacles during collisions can resolve deadlocks
+   - All robots (including paused) replan when obstacles change
+   - Collision pairs are re-evaluated with new paths
+   - Robots auto-resume if collision no longer exists
+4. **Stuck Robot Handling**: Robots unable to reach goals are visually indicated and logged
    - Simulation continues without pausing
    - Red border indicates stuck robots
    - Game log shows warning messages
-4. **Dynamic Replanning**: When obstacles are added/removed, all robots replan using D* Lite's incremental updates
-5. **Clean Slate Resizing**: Arena resize clears everything and places robot1 at start
-6. **Duplicate Prevention**: Robots cannot share starting positions
+5. **Dynamic Replanning**: When obstacles are added/removed, all robots replan using D* Lite's incremental updates
+6. **Clean Slate Resizing**: Arena resize clears everything and places robot1 at start
+7. **Duplicate Prevention**: Robots cannot share starting positions
 
-## Project Structure
+## Project Structure (Unified Package)
 
 ```
 multi-robot-d-star-lite/
-├── multi_robot_d_star_lite/    # Main Python package
-│   ├── __init__.py
-│   ├── world.py                # Grid environment with 4-connected movement
-│   ├── dstar_lite.py           # Core D* Lite algorithm (iteration limit: width*height*100)
-│   ├── coordinator.py          # Multi-agent coordination with collision detection
-│   ├── visualizer.py           # Pygame visualization with three-panel layout
-│   ├── game_log.py             # Scrollable game log component with timestamps
-│   ├── ui_components.py        # Button and ControlPanel UI components
-│   ├── simple_visualizer.py    # ASCII visualization for debugging
-│   └── utils/
+├── multi_robot_d_star_lite/    # Main Python package (unified structure)
+│   ├── __init__.py             # Package initialization with exports
+│   ├── core/                   # Core pathfinding logic (shared by all interfaces)
+│   │   ├── __init__.py
+│   │   ├── world.py            # Grid environment with 4-connected movement
+│   │   ├── coordinator.py      # Multi-agent coordination with collision detection
+│   │   └── path_planners/      # Path planning algorithms
+│   │       ├── __init__.py
+│   │       ├── base_planner.py       # Abstract base planner
+│   │       └── dstar_lite_planner.py # D* Lite algorithm (iteration limit: width*height*100)
+│   ├── pygame/                 # Pygame visualization (original interface)
+│   │   ├── __init__.py
+│   │   ├── __main__.py         # Entry point for pygame mode
+│   │   ├── visualizer.py       # Pygame visualization with three-panel layout
+│   │   ├── game_log.py         # Scrollable game log component with timestamps
+│   │   ├── ui_components.py    # Button and ControlPanel UI components
+│   │   └── simple_visualizer.py # ASCII visualization for debugging
+│   ├── web/                    # Web application (modern interface)
+│   │   ├── __init__.py
+│   │   ├── __main__.py         # Entry point for web server
+│   │   ├── main.py             # FastAPI application with WebSocket support
+│   │   └── game_manager.py     # Game state manager for web interface
+│   └── utils/                  # Shared utilities
 │       ├── __init__.py
 │       ├── export_grid.py      # Export current state to visual format
 │       ├── parse_test_grid.py  # Parser for visual test format
 │       └── colors.py           # Dynamic color generation for robots
-├── tests/                       # All test files (118+ tests)
-│   ├── __init__.py
-│   ├── requirements.txt        # Test-specific dependencies
+├── frontend/                    # React TypeScript frontend (Vite)
+│   ├── src/
+│   │   ├── components/         # React components
+│   │   │   ├── Grid2D.tsx      # Interactive 2D grid visualization
+│   │   │   ├── Controls.tsx    # Control panel component
+│   │   │   └── StatusPanel.tsx # Status and info display
+│   │   ├── store/              # State management (Zustand)
+│   │   │   └── gameStore.ts    # Game state and WebSocket management
+│   │   └── App.tsx            # Main application component
+│   ├── package.json           # Frontend dependencies
+│   └── vite.config.ts         # Vite configuration
+├── tests/                      # All test files (187+ tests passing)
+│   ├── web/                    # Web application tests
+│   │   ├── test_game_manager.py      # GameManager tests
+│   │   ├── test_game_manager_stuck.py # Stuck robot detection in web
+│   │   └── test_websocket.py         # WebSocket endpoint tests
 │   ├── test_world.py           # Grid world functionality tests
-│   ├── test_collision.py       # Collision detection tests (formerly test_all.py)
+│   ├── test_collision.py       # Collision detection tests
 │   ├── test_placement_validation.py  # Placement validation tests
 │   ├── test_robot_management.py      # Robot add/remove tests
 │   ├── test_world_resize.py          # Arena resizing tests
-│   ├── test_pausing_behavior.py      # Stuck robot detection tests (11 tests)
-│   ├── test_game_log.py              # Game log component tests (17 tests)
+│   ├── test_stuck_robot_detection.py # Stuck robot detection tests
+│   ├── test_pausing_behavior.py      # Pausing behavior tests
+│   ├── test_game_log.py              # Game log component tests
 │   ├── test_visualizer_with_log.py   # Visualizer integration tests
 │   ├── test_color_generation.py      # Color generation tests
 │   ├── test_control_panel.py         # UI component tests
-│   ├── test_export.py          # Export/import test
+│   ├── test_collision_state_management.py  # Pause state tests
+│   ├── test_mixed_robot_movement.py        # Mixed paused/moving scenarios
+│   ├── test_partial_pausing.py             # Core partial pausing tests
 │   └── fixtures/
 │       └── test_cases.txt      # Visual test cases for all tests
-├── main.py                      # Main demo with dynamic obstacles and goal setting
-├── run_dev.sh                   # Virtual environment manager with RAII-style cleanup
-├── requirements.txt             # Core dependencies (numpy, pygame, colorama)
-├── setup.py                     # Package installation configuration
-├── pyproject.toml              # Modern Python project configuration
-├── tox.ini                     # Testing automation
-├── README.md                    # Public documentation
-├── CLAUDE.md                    # This file - internal documentation
-├── .gitignore                  # Git ignore patterns
+├── main.py                     # Legacy entry point (runs pygame version)
+├── run_dev.sh                  # Universal launcher with RAII-style venv management
+├── run_tests.sh                # Test runner for all components
+├── requirements.txt            # All dependencies (core + pygame + web + testing)
+├── setup.py                    # Package installation configuration
+├── pyproject.toml             # Modern Python project configuration
+├── tox.ini                    # Testing automation
+├── README.md                  # Public documentation
+├── CLAUDE.md                  # This file - internal documentation
+├── .gitignore                 # Git ignore patterns
 └── .github/
     └── workflows/
-        └── ci.yml               # GitHub Actions CI/CD pipeline
+        └── ci.yml              # GitHub Actions CI/CD pipeline
 ```
 
 ## Core Implementation Details
 
-### GridWorld (world.py)
+### GridWorld (core/world.py)
 - Manages grid with static obstacles and robot positions
 - `is_free()` checks if a cell is traversable (only checks static obstacles, NOT robots)
 - `get_neighbors()` returns only 4 cardinal neighbors with cost 1.0
@@ -89,13 +123,13 @@ multi-robot-d-star-lite/
   - Removes out-of-bounds content
   - Enforces min/max size limits
 
-### D* Lite Algorithm (dstar_lite.py)
+### D* Lite Algorithm (core/path_planners/dstar_lite_planner.py)
 - **Critical**: `km` parameter accumulates with each robot move for correctness
 - Uses Manhattan heuristic: `abs(a[0] - b[0]) + abs(a[1] - b[1])`
 - Lexicographic priority queue ordering via tuple comparison
 - `update_edge_costs()` enables incremental replanning when obstacles change
 
-### Multi-Agent Coordinator (coordinator.py)
+### Multi-Agent Coordinator (core/coordinator.py)
 Key methods:
 - `recompute_paths()`: Computes paths for all robots after changes
 - `detect_collision_at_next_step()`: Comprehensive collision detection that checks for:
@@ -117,7 +151,9 @@ Key methods:
 - **NEW**: `reset_to_default()` - Reset to 10x10 clean slate
 - **NEW**: `add_robot()` returns bool - False if position occupied
 
-### Visualization (visualizer.py & __main__.py)
+### Visualization
+
+#### Pygame Interface (pygame/visualizer.py & pygame/__main__.py)
 Interactive features:
 - **Three-Panel Layout**: Game log (left, 200px), Grid (center), Control panel (right, 200px)
 - **Start paused**: Shows initial setup for easier scenario building
@@ -135,7 +171,7 @@ Interactive features:
   - Paths shown in robot-specific colors
 - **Coordinate transformation**: Mouse clicks adjusted for log panel offset (200px)
 
-### Game Log (game_log.py)
+#### Game Log (pygame/game_log.py)
 - **Scrollable log panel**: Displays simulation events with timestamps
 - **Message types**: info, warning, error, success, collision (each with unique colors)
 - **Auto-scrolling**: Automatically scrolls to latest messages
@@ -143,7 +179,7 @@ Interactive features:
 - **Message limit**: Maintains last 100 messages for performance
 - **Word wrapping**: Long messages wrapped to fit panel width
 
-### UI Components (ui_components.py)
+#### UI Components (pygame/ui_components.py)
 - **Button class**: Interactive buttons with hover/click states
 - **ControlPanel class**: Comprehensive control panel with:
   - Add/Remove robot buttons
@@ -154,14 +190,40 @@ Interactive features:
   - Robot count display
 - **ButtonGroup**: Manages exclusive button selection
 
-### Color Generation (utils/colors.py)
+#### Web Interface (web/main.py & frontend/)
+- **FastAPI Backend**: WebSocket server for real-time communication
+- **React Frontend**: Modern TypeScript UI with Vite build system
+- **Zustand State Management**: Centralized game state
+- **Real-time Updates**: WebSocket-based bidirectional communication
+- **Interactive Grid**: Click to add/remove obstacles, set goals
+- **Responsive Design**: Works on desktop and tablet devices
+
+### Shared Utilities
+
+#### Color Generation (utils/colors.py)
 - **Dynamic color generation**: Unique colors for unlimited robots
 - **HSV color space**: Even distribution around color wheel
 - **Predefined colors**: Robot1 (blue) and Robot2 (red) fixed
 - **Color sets**: Matching colors for robot/goal/path
 - **Color caching**: Consistent colors across sessions
 
-**Note**: `main.py` now simply imports from `__main__.py` to avoid code duplication
+**Note**: `main.py` now serves as a simple entry point for the pygame version
+
+## Unified Package Architecture
+
+The project has been restructured into a unified Python package that supports both pygame and web interfaces:
+
+### Why Unified Structure?
+- **Code Reuse**: Core pathfinding logic shared between interfaces
+- **Maintainability**: Single source of truth for algorithms
+- **Flexibility**: Easy to add new interfaces (CLI, API, etc.)
+- **Testing**: Unified test suite covers all components
+
+### Package Organization
+- `core/`: Contains all pathfinding logic, world management, and coordination
+- `pygame/`: Original pygame visualization with local UI
+- `web/`: Modern web interface with React frontend and FastAPI backend
+- `utils/`: Shared utilities used by both interfaces
 
 ## Recent Features (Added via TDD)
 
@@ -197,43 +259,76 @@ Interactive features:
 
 ```bash
 # Install system dependencies (one-time setup)
-sudo apt-get install python3-venv python3-pip
+sudo apt-get install python3-venv python3-pip nodejs npm
 
 # Clone and setup
 git clone https://github.com/jzender12/multi-robot-d-star-lite.git
 cd multi-robot-d-star-lite
 
-# Install package in development mode
+# Install package in development mode (optional)
 ./run_dev.sh pip install -e .
+
+# The run_dev.sh script handles all virtual environment setup automatically
 ```
 
-## Running the Demo
+## Running the Application
 
+### Web Interface (Default - Recommended)
 ```bash
-# Run the main demo
-./run_dev.sh python3 main.py
+# Launch web application (default mode)
+./run_dev.sh
+# Opens: Backend at http://localhost:8000, Frontend at http://localhost:5173
+```
 
-# Alternative: After installation
-python3 main.py
+### Pygame Interface (Original)
+```bash
+# Launch pygame visualization
+./run_dev.sh pygame
+
+# Alternative: Direct Python execution
+./run_dev.sh python3 main.py
+```
+
+### Custom Commands
+```bash
+# Run any Python command in the virtual environment
+./run_dev.sh python3 your_script.py
 ```
 
 ## Running Tests
 
 ```bash
-# Run all tests with pytest
+# Run all tests (recommended - uses helper script)
+./run_tests.sh
+
+# Run all tests manually
 ./run_dev.sh pytest tests/
 
 # Run with coverage
 ./run_dev.sh pytest tests/ --cov=multi_robot_d_star_lite
 
-# Run specific test
-./run_dev.sh pytest tests/test_world.py
+# Run specific test categories
+./run_dev.sh pytest tests/web/          # Web interface tests
+./run_dev.sh pytest tests/test_world.py # Specific test file
 
 # Run with tox for multiple Python versions
 ./run_dev.sh tox
 ```
 
 ## Controls
+
+### Web Interface Controls
+- **Click Grid**: Add/remove obstacles
+- **Click Robot**: Select robot (when paused)
+- **Click Empty Cell**: Set goal for selected robot
+- **Control Panel**:
+  - Start/Pause/Reset simulation
+  - Add/Remove robots
+  - Clear obstacles
+  - Adjust simulation speed
+  - Arena size presets
+
+### Pygame Interface Controls
 
 - **SPACE**: Pause/Resume simulation
 - **O**: Toggle obstacle mode (Place/Draw)
@@ -253,7 +348,7 @@ python3 main.py
 
 ## Using run_dev.sh
 
-The `run_dev.sh` script provides RAII-style virtual environment management:
+The `run_dev.sh` script is the universal launcher that provides RAII-style virtual environment management:
 
 ```bash
 # Run any Python script
@@ -274,9 +369,15 @@ The `run_dev.sh` script provides RAII-style virtual environment management:
 
 The script automatically:
 - Creates/activates virtual environment
-- Installs requirements.txt
-- Runs your command
+- Installs all dependencies from requirements.txt
+- Launches the requested interface (web by default, pygame with 'pygame' argument)
+- Runs your command in the proper environment
 - Cleans up on exit (even on errors)
+
+### Script Modes:
+- **No arguments**: Launches web application (backend + frontend)
+- **`pygame` argument**: Launches pygame visualization
+- **Any other command**: Executes in virtual environment
 
 ## Visual Test Format
 
@@ -302,19 +403,26 @@ During simulation, press 'C' when paused to copy the current grid state to clipb
 
 ## How It Works
 
-1. **Initial State**: Clean 10x10 grid with robot1 at (0,0), goal at (9,9)
+1. **Initial State**: Clean 10x10 grid with robot0 at (0,0), goal at (9,9)
 2. **Path Planning**: Each robot runs D* Lite independently WITHOUT considering other robots
-3. **Collision Detection**: System checks for three types of collisions:
+3. **Collision Detection**: System checks for three types of collisions BEFORE movement:
    - Same-cell: Both robots trying to enter same position
    - Swap: Robots exchanging positions
    - Shear: Perpendicular crossing where one robot enters a cell another is leaving
-4. **Collision Response**: Simulation PAUSES when collision detected, displaying the specific collision type
-5. **Placement Validation**: Prevents invalid configurations:
+4. **Partial Pausing**: Only robots involved in collision pause (orange border)
+   - Other robots continue moving normally
+   - Paused robots keep their paths visible
+   - Collision pairs are tracked for auto-recovery
+5. **Collision Resolution via Obstacles**:
+   - Placing obstacles triggers replanning for ALL robots (including paused)
+   - Collision pairs are re-evaluated with new paths
+   - Robots auto-resume if collision no longer exists
+6. **Placement Validation**: Prevents invalid configurations:
    - Goals cannot be placed on obstacles
    - Multiple robots cannot have the same goal or position
    - Obstacles cannot be placed on robots or goals
-6. **Arena Resizing**: Creates clean slate with robot1 only
-7. **Dynamic Updates**: When obstacles change, D* Lite efficiently replans using incremental updates
+7. **Arena Resizing**: Creates clean slate with robot0 only
+8. **Dynamic Updates**: When obstacles change, D* Lite efficiently replans using incremental updates
 
 ## Key Insights from Development
 
@@ -336,23 +444,51 @@ During simulation, press 'C' when paused to copy the current grid state to clipb
 3. **Manhattan heuristic**: Uses 4-connected grid, no diagonal movement
 4. **Dynamic obstacles**: Modify world and call `update_edge_costs()` for efficient replanning
 
+## Import Structure
+
+With the unified package architecture, imports are organized by module:
+
+```python
+# Core components (shared by all interfaces)
+from multi_robot_d_star_lite.core import GridWorld, MultiAgentCoordinator
+from multi_robot_d_star_lite.core.path_planners import DStarLitePlanner
+
+# Pygame interface components
+from multi_robot_d_star_lite.pygame import GridVisualizer, GameLog
+from multi_robot_d_star_lite.pygame.ui_components import Button, ControlPanel
+
+# Web interface components
+from multi_robot_d_star_lite.web import GameManager
+from multi_robot_d_star_lite.web.main import app  # FastAPI app
+
+# Shared utilities
+from multi_robot_d_star_lite.utils.colors import get_robot_color
+from multi_robot_d_star_lite.utils.export_grid import export_to_visual_format
+```
+
 ## Test-Driven Development
 
 This project follows TDD principles with comprehensive test coverage:
-- **118+ passing tests** for core functionality
+- **187+ passing tests** across all components
 - Test files for each major component
 - Visual test format for complex scenarios
 - Tests written BEFORE implementation
 
 ### Test Coverage:
-- Robot management: 13 tests - duplicate prevention, add/remove
-- World resizing: 17 tests - clean slate behavior
-- Placement validation: 11 tests - goal/obstacle validation
-- Stuck robot detection: 11 tests - detection, recovery, simulation continuity
-- Game log: 17 tests - scrolling, timestamps, message handling
-- Visualizer integration: Tests for three-panel layout and coordinate transformation
-- Color generation: Mock tests for dynamic colors
-- UI components: Mock tests for control panel
+- Core functionality: 150+ tests
+  - Robot management: 13 tests - duplicate prevention, add/remove
+  - World resizing: 17 tests - clean slate behavior
+  - Placement validation: 11 tests - goal/obstacle validation
+  - Stuck robot detection: 11 tests - detection, recovery, simulation continuity
+  - Collision detection: Comprehensive collision scenarios
+- Pygame interface: 30+ tests
+  - Game log: 17 tests - scrolling, timestamps, message handling
+  - Visualizer integration: Tests for three-panel layout and coordinate transformation
+  - UI components: Mock tests for control panel
+- Web interface: 20+ tests
+  - WebSocket communication tests
+  - Game manager state tests
+  - API endpoint tests
 
 ### Recent Test Fixes:
 - `test_no_duplicate_start_positions`: Now correctly expects False return
@@ -373,4 +509,21 @@ For production systems:
 
 ## Summary
 
-This implementation demonstrates that multi-agent pathfinding doesn't require complex frameworks. By leveraging D* Lite's natural obstacle avoidance and adding simple temporal collision resolution, we achieve robust multi-robot coordination. The key is understanding that robots are just dynamic obstacles, and D* Lite already knows how to handle obstacles efficiently.
+This implementation demonstrates that multi-agent pathfinding doesn't require complex frameworks. By leveraging D* Lite's natural obstacle avoidance and adding simple temporal collision resolution, we achieve robust multi-robot coordination. The unified package architecture allows us to provide both traditional pygame visualization and modern web interfaces while sharing the same core pathfinding logic.
+
+### Key Achievements:
+- **Unified Architecture**: Single package supports multiple interfaces
+- **Code Reuse**: Core logic shared between pygame and web versions
+- **Modern Stack**: React + TypeScript frontend with FastAPI backend
+- **Comprehensive Testing**: 187+ tests ensure reliability
+- **Developer Experience**: Simple `run_dev.sh` handles all complexity
+
+The key insight is understanding that robots are just dynamic obstacles, and D* Lite already knows how to handle obstacles efficiently. The modular architecture ensures that future interfaces can easily be added without duplicating core logic.
+
+## Development Guidelines
+
+- Always run tests after making changes: `./run_tests.sh`
+- Use TDD: Write tests first, then implementation
+- Keep core logic in `core/` module, UI-specific code in respective modules
+- Update both CLAUDE.md (internal) and README.md (public) when adding features
+- Ensure all tests pass before committing changes

@@ -6,7 +6,7 @@ Loads test cases from test_cases.txt and runs appropriate test logic.
 
 from colorama import init, Fore, Style
 from multi_robot_d_star_lite.utils.parse_test_grid import load_test_cases, setup_from_visual
-from multi_robot_d_star_lite.simple_visualizer import SimpleVisualizer
+from multi_robot_d_star_lite.pygame.simple_visualizer import SimpleVisualizer
 from multi_robot_d_star_lite.path_planners.dstar_lite_planner import DStarLitePlanner
 import sys
 

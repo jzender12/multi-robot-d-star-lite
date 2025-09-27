@@ -7,10 +7,10 @@ This allows the package to be run as a module: python -m multi_robot_d_star_lite
 
 import pygame
 import time
-from .world import GridWorld
-from .coordinator import MultiAgentCoordinator
+from ..core.world import GridWorld
+from ..core.coordinator import MultiAgentCoordinator
 from .visualizer import GridVisualizer
-from .utils.export_grid import export_to_visual_format, copy_to_clipboard
+from ..utils.export_grid import export_to_visual_format, copy_to_clipboard
 
 def main():
     """

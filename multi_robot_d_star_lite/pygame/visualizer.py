@@ -1,7 +1,7 @@
 import pygame
 from typing import Dict, Tuple, List
 from .ui_components import ControlPanel
-from .utils.colors import generate_robot_color
+from ..utils.colors import generate_robot_color
 from .game_log import GameLog
 
 class GridVisualizer:
