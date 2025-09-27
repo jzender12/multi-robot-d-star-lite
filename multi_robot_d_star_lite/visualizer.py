@@ -107,10 +107,13 @@ class GridVisualizer:
         for point in points[1:-1]:  # Skip start and end
             pygame.draw.circle(self.screen, color, point, 4)
 
-    def render(self, coordinator=None, paths=None, step_count=0, info_text="", selected_robot=None, paused=False, stuck_robots=None):
+    def render(self, coordinator=None, paths=None, step_count=0, info_text="", selected_robot=None, paused=False, stuck_robots=None, paused_robots=None):
         """
         Main rendering function.
         Shows current state of the world and robot paths.
+
+        Args:
+            paused_robots: Dict of robot_id -> pause_reason for partially paused robots
         """
         # Clear screen
         self.screen.fill(self.colors['background'])
@@ -164,6 +167,8 @@ class GridVisualizer:
         # Draw robots
         if stuck_robots is None:
             stuck_robots = []
+        if paused_robots is None:
+            paused_robots = {}
 
         for robot_id, pos in self.world.robot_positions.items():
             # Get color dynamically for all robots
@@ -176,6 +181,12 @@ class GridVisualizer:
             if selected_robot == robot_id:
                 # Draw selection highlight (yellow border)
                 pygame.draw.rect(self.screen, (255, 255, 0),
+                               (pos[0] * self.cell_size + self.grid_offset_x, pos[1] * self.cell_size,
+                                self.cell_size, self.cell_size), 3)
+            # If this robot is paused (collision), draw orange/amber border
+            elif robot_id in paused_robots:
+                # Draw paused indicator (orange/amber border)
+                pygame.draw.rect(self.screen, (255, 165, 0),  # Orange color
                                (pos[0] * self.cell_size + self.grid_offset_x, pos[1] * self.cell_size,
                                 self.cell_size, self.cell_size), 3)
             # If this robot is stuck, draw red border

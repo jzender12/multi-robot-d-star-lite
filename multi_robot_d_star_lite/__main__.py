@@ -268,19 +268,15 @@ def main():
                     is_robot_pos = any(pos == (x, y) for pos in coordinator.current_positions.values())
 
                     if (x, y) in world.static_obstacles:
-                        world.remove_obstacle(x, y)
+                        coordinator.remove_dynamic_obstacle(x, y)
                         info_text = f"Removed obstacle at ({x}, {y})"
-                        # Pass the changed cell so D* Lite can update properly
-                        coordinator.recompute_paths(changed_cells={(x, y)})
                     elif is_goal_pos:
                         info_text = "Cannot place obstacle on a goal"
                     elif is_robot_pos:
                         info_text = "Cannot place obstacle on a robot"
                     else:
-                        world.add_obstacle(x, y)
+                        coordinator.add_dynamic_obstacle(x, y)
                         info_text = f"Added obstacle at ({x}, {y})"
-                        # Pass the changed cell so D* Lite can update properly
-                        coordinator.recompute_paths(changed_cells={(x, y)})
 
             else:
                 # Not paused - just add/remove obstacles
@@ -289,21 +285,17 @@ def main():
                 is_goal_pos = any(goal == (x, y) for goal in coordinator.goals.values())
 
                 if (x, y) in world.static_obstacles:
-                    world.remove_obstacle(x, y)
+                    coordinator.remove_dynamic_obstacle(x, y)
                     info_text = f"Removed obstacle at ({x}, {y})"
                     visualizer.add_log_message(f"Removed obstacle at ({x}, {y})", "info")
-                    # Pass the changed cell so D* Lite can update properly
-                    coordinator.recompute_paths(changed_cells={(x, y)})
                 elif is_robot_pos:
                     info_text = "Cannot place obstacle on a robot"
                 elif is_goal_pos:
                     info_text = "Cannot place obstacle on a goal"
                 else:
-                    world.add_obstacle(x, y)
+                    coordinator.add_dynamic_obstacle(x, y)
                     info_text = f"Added obstacle at ({x}, {y})"
                     visualizer.add_log_message(f"Added obstacle at ({x}, {y})", "info")
-                    # Pass the changed cell so D* Lite can update properly
-                    coordinator.recompute_paths(changed_cells={(x, y)})
 
         # Handle mouse motion for draw mode
         elif events.get('mouse_motion') and visualizer.control_panel.obstacle_draw_mode:
@@ -315,34 +307,32 @@ def main():
                 is_robot_pos = any(pos == (x, y) for pos in coordinator.current_positions.values())
 
                 if not ((x, y) in world.static_obstacles) and not is_goal_pos and not is_robot_pos:
-                    world.add_obstacle(x, y)
+                    coordinator.add_dynamic_obstacle(x, y)
                     # Don't spam log for each cell in draw mode
-                    # Pass the changed cell so D* Lite can update properly
-                    coordinator.recompute_paths(changed_cells={(x, y)})
 
         # Step simulation at controlled rate
         current_time = time.time()
         if not paused and current_time - last_step_time > 1.0 / sim_speed:
             # Move robots one step
-            should_continue, collision, stuck_robots = coordinator.step_simulation()
+            should_continue, collision, stuck_robots, paused_robots = coordinator.step_simulation()
 
             if collision:
-                # Collision detected - pause and show warning
+                # Collision detected - only involved robots pause
                 robot1, robot2, collision_type = collision
 
                 # Create descriptive messages for each collision type
                 collision_messages = {
-                    'same_cell': f"SAME-CELL COLLISION! {robot1} and {robot2} trying to enter same cell - PAUSED",
-                    'swap': f"SWAP COLLISION! {robot1} and {robot2} exchanging positions - PAUSED",
-                    'shear': f"SHEAR COLLISION! {robot1} entering cell as {robot2} exits perpendicularly - PAUSED"
+                    'same_cell': f"COLLISION! {robot1} and {robot2} trying to enter same cell - robots paused",
+                    'swap': f"SWAP COLLISION! {robot1} and {robot2} exchanging positions - robots paused",
+                    'shear': f"SHEAR COLLISION! {robot1} entering cell as {robot2} exits perpendicularly - robots paused"
                 }
 
-                info_text = collision_messages.get(collision_type, f"COLLISION ({collision_type})! {robot1} and {robot2} - PAUSED")
+                info_text = collision_messages.get(collision_type, f"COLLISION ({collision_type})! {robot1} and {robot2} - robots paused")
                 print(f"⚠ Collision detected: {collision_type.upper()}")
-                print(f"  {info_text}")
+                print(f"  Paused robots: {robot1}, {robot2}")
+                print(f"  Other robots continue moving")
                 visualizer.add_log_message(f"COLLISION: {robot1} and {robot2} ({collision_type})", "collision")
-                paused = True
-                visualizer.control_panel.set_paused(paused)  # Sync UI state
+                # Don't pause the whole simulation, just the collided robots
             elif stuck_robots:
                 # Some robots are stuck but simulation continues
                 step_count += 1
@@ -383,9 +373,11 @@ def main():
 
             last_step_time = current_time
 
-        # Render current state (pass stuck_robots if available)
-        stuck_robots_to_display = stuck_robots if not paused and 'stuck_robots' in locals() else []
-        visualizer.render(coordinator, coordinator.paths, step_count, info_text, selected_robot, paused, stuck_robots_to_display)
+        # Render current state (pass stuck_robots and paused_robots if available)
+        stuck_robots_to_display = stuck_robots if 'stuck_robots' in locals() else []
+        paused_robots_to_display = paused_robots if 'paused_robots' in locals() else {}
+        visualizer.render(coordinator, coordinator.paths, step_count, info_text, selected_robot, paused,
+                         stuck_robots_to_display, paused_robots_to_display)
         visualizer.clock.tick(60)  # 60 FPS
 
     visualizer.cleanup()

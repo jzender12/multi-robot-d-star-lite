@@ -29,7 +29,7 @@ class TestStuckRobotDetection:
         coordinator.recompute_paths()
 
         # Step simulation - should report robot as stuck
-        should_continue, collision, stuck_robots = coordinator.step_simulation()
+        should_continue, collision, stuck_robots, paused_robots = coordinator.step_simulation()
 
         assert "robot0" in stuck_robots, "Robot should be marked as stuck when goal blocked"
         assert should_continue == True, "Simulation should continue even with stuck robot"
@@ -42,7 +42,7 @@ class TestStuckRobotDetection:
         coordinator.add_robot("robot0", start=(2, 2), goal=(2, 2))  # Already at goal
 
         # Step simulation
-        should_continue, collision, stuck_robots = coordinator.step_simulation()
+        should_continue, collision, stuck_robots, paused_robots = coordinator.step_simulation()
 
         assert "robot0" not in stuck_robots, "Robot at goal should not be stuck"
         assert should_continue == False, "Should not continue when all robots at goal"
@@ -55,7 +55,7 @@ class TestStuckRobotDetection:
         coordinator.recompute_paths()
 
         # Step simulation
-        should_continue, collision, stuck_robots = coordinator.step_simulation()
+        should_continue, collision, stuck_robots, paused_robots = coordinator.step_simulation()
 
         assert len(stuck_robots) == 0, "Robot with valid path should not be stuck"
         assert should_continue == True, "Should continue with moving robot"
@@ -75,7 +75,7 @@ class TestStuckRobotRecovery:
         coordinator.recompute_paths()
 
         # Verify robot is stuck
-        _, _, stuck_robots = coordinator.step_simulation()
+        _, _, stuck_robots, _ = coordinator.step_simulation()
         assert "robot0" in stuck_robots, "Robot should be stuck initially"
 
         # Remove obstacle
@@ -83,7 +83,7 @@ class TestStuckRobotRecovery:
         coordinator.recompute_paths(changed_cells={(2, 2)})
 
         # Robot should no longer be stuck
-        should_continue, _, stuck_robots = coordinator.step_simulation()
+        should_continue, _, stuck_robots, _ = coordinator.step_simulation()
         assert "robot0" not in stuck_robots, "Robot should resume when path clears"
         assert should_continue == True, "Should continue moving"
 
@@ -99,14 +99,14 @@ class TestStuckRobotRecovery:
         coordinator.recompute_paths()
 
         # Check initial state - might or might not be stuck depending on pathfinding
-        _, _, stuck_robots_initial = coordinator.step_simulation()
+        _, _, stuck_robots_initial, _ = coordinator.step_simulation()
 
         # Open a clear gap in the wall
         world.remove_obstacle(3, 2)
         coordinator.recompute_paths(changed_cells={(3, 2)})
 
         # Should find path through gap (or around if there was already a path)
-        _, _, stuck_robots = coordinator.step_simulation()
+        _, _, stuck_robots, _ = coordinator.step_simulation()
 
         # If it was stuck before, it shouldn't be stuck now
         if len(stuck_robots_initial) > 0:
@@ -131,7 +131,7 @@ class TestSimulationContinuity:
 
         # Step simulation multiple times
         for _ in range(3):
-            should_continue, collision, stuck_robots = coordinator.step_simulation()
+            should_continue, collision, stuck_robots, paused_robots = coordinator.step_simulation()
             assert should_continue == True, "Simulation should continue"
             assert "robot0" in stuck_robots, "Robot0 should remain stuck"
             assert "robot1" not in stuck_robots, "Robot1 should not be stuck"
@@ -152,7 +152,7 @@ class TestSimulationContinuity:
         coordinator.recompute_paths()
 
         # Step simulation
-        should_continue, _, stuck_robots = coordinator.step_simulation()
+        should_continue, _, stuck_robots, _ = coordinator.step_simulation()
 
         assert len(stuck_robots) == 2, "Two robots should be stuck"
         assert "robot0" in stuck_robots, "Robot0 should be stuck"
@@ -178,7 +178,7 @@ class TestAllRobotsStuck:
         coordinator.recompute_paths()
 
         # Step simulation
-        should_continue, collision, stuck_robots = coordinator.step_simulation()
+        should_continue, collision, stuck_robots, paused_robots = coordinator.step_simulation()
 
         assert len(stuck_robots) == 2, "Both robots should be stuck"
         assert should_continue == True, "Should continue even with all stuck"
@@ -197,7 +197,7 @@ class TestAllRobotsStuck:
         coordinator.recompute_paths()
 
         # Step simulation
-        should_continue, _, stuck_robots = coordinator.step_simulation()
+        should_continue, _, stuck_robots, _ = coordinator.step_simulation()
 
         # Should not report success since one robot is stuck (not at goal)
         assert should_continue == True, "Should continue with stuck robot"
@@ -215,7 +215,7 @@ class TestDynamicObstacleHandling:
         coordinator.recompute_paths()
 
         # Move robot partway
-        should_continue, _, stuck_robots = coordinator.step_simulation()
+        should_continue, _, stuck_robots, _ = coordinator.step_simulation()
         assert len(stuck_robots) == 0, "Initially not stuck"
         assert should_continue == True
 
@@ -224,7 +224,7 @@ class TestDynamicObstacleHandling:
         coordinator.recompute_paths(changed_cells={(4, 4)})
 
         # Robot should now be stuck
-        should_continue, _, stuck_robots = coordinator.step_simulation()
+        should_continue, _, stuck_robots, _ = coordinator.step_simulation()
         assert "robot0" in stuck_robots, "Should be stuck after goal blocked"
 
     def test_moving_obstacle_causes_stuck(self):
@@ -241,7 +241,7 @@ class TestDynamicObstacleHandling:
         coordinator.recompute_paths()
 
         # Initially should have path around obstacles
-        _, _, stuck_robots = coordinator.step_simulation()
+        _, _, stuck_robots, _ = coordinator.step_simulation()
         assert len(stuck_robots) == 0, "Should have path initially"
 
         # Now completely surround the goal
@@ -251,5 +251,5 @@ class TestDynamicObstacleHandling:
         coordinator.recompute_paths(changed_cells={(3, 4), (4, 3), (3, 3)})
 
         # Should now be stuck
-        _, _, stuck_robots = coordinator.step_simulation()
+        _, _, stuck_robots, _ = coordinator.step_simulation()
         assert "robot0" in stuck_robots, "Should be stuck when goal surrounded"
