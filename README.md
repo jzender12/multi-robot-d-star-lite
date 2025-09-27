@@ -36,5 +36,3 @@ Opens at http://localhost:5173
 ```
 
 ---
-
-**Note**: This project demonstrates multi-robot coordination without complex frameworks. The key insight: robots are dynamic obstacles, and D* Lite handles obstacles efficiently!
