@@ -18,6 +18,7 @@ class MultiAgentCoordinator:
         # Partial pausing state management
         self.paused_robots = {}  # robot_id -> pause reason
         self.collision_pairs = []  # List of (robot1, robot2, collision_type) tuples
+        self.stuck_robots = set()  # Track robots with no path to goal
 
     def add_robot(self, robot_id: str, start: Tuple[int, int],
                   goal: Tuple[int, int]) -> bool:
@@ -211,6 +212,32 @@ class MultiAgentCoordinator:
                 pos = self.current_positions[robot_id]
                 self.world.remove_obstacle(pos[0], pos[1])
 
+        # Update stuck robots after recomputing paths
+        self.detect_stuck_robots()
+
+    def detect_stuck_robots(self) -> set:
+        """
+        Detect robots that are stuck (no path to goal and not at goal).
+        Returns a set of stuck robot IDs.
+        Updates self.stuck_robots instance variable.
+        """
+        stuck = set()
+        for robot_id in self.planners:
+            current_pos = self.current_positions[robot_id]
+            goal_pos = self.goals[robot_id]
+
+            # If at goal, not stuck
+            if current_pos == goal_pos:
+                continue
+
+            # If no path, empty path, or path only contains current position, robot is stuck
+            path = self.paths.get(robot_id, [])
+            if not path or len(path) == 0 or (len(path) == 1 and path[0] == current_pos):
+                stuck.add(robot_id)
+
+        self.stuck_robots = stuck
+        return stuck
+
     def step_simulation(self) -> Tuple[bool, Optional[Tuple[str, str, str]], List[str], Dict[str, str]]:
         """
         Move all robots one step along their paths.
@@ -229,7 +256,10 @@ class MultiAgentCoordinator:
             # Don't return here - let other robots continue moving
 
         any_robot_moving = False
-        stuck_robots = []
+
+        # Detect stuck robots (updates self.stuck_robots)
+        self.detect_stuck_robots()
+        stuck_robots = list(self.stuck_robots)
 
         # Check for recovery of paused robots
         self.check_paused_robot_recovery()
@@ -249,7 +279,7 @@ class MultiAgentCoordinator:
 
             # Check if robot has no path (stuck)
             if not path or len(path) == 0:
-                stuck_robots.append(robot_id)
+                # Already tracked in detect_stuck_robots()
                 continue  # Can't move, but track as stuck
 
             any_robot_moving = True

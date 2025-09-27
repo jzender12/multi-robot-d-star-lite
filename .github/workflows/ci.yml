@@ -53,11 +53,8 @@ jobs:
 
     - name: Test with pytest
       run: |
+        # Test all components
         pytest tests/ -v --cov=multi_robot_d_star_lite --cov-report=xml --cov-report=term-missing
-        # Explicitly test new modules
-        pytest tests/test_robot_management.py -v
-        pytest tests/test_world_resize.py -v
-        pytest tests/test_placement_validation.py -v
 
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.10'

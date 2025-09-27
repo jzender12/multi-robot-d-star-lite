@@ -97,12 +97,35 @@ if [ "$1" = "tox" ]; then
     fi
 fi
 
-# Execute command or start interactive shell
+# Execute command or launch the app
 if [ $# -eq 0 ]; then
-    print_msg "Starting interactive shell in virtual environment..."
-    print_msg "Type 'exit' or press Ctrl+D to leave."
+    # No arguments - launch the web application
+    print_msg "Launching Multi-Robot D* Lite Web Application..."
+    print_msg "Backend will run on http://localhost:8000"
+    print_msg "Frontend will run on http://localhost:5173"
     echo ""
-    exec bash --rcfile <(echo "PS1='(venv) \$ '")
+
+    # Start backend in background
+    print_msg "Starting backend server..."
+    python3 -m uvicorn multi_robot_d_star_lite.web.main:app --reload --host 0.0.0.0 --port 8000 &
+    BACKEND_PID=$!
+
+    # Give backend time to start
+    sleep 2
+
+    # Start frontend
+    print_msg "Starting frontend server..."
+    cd frontend
+    npm install
+    npm run dev
+
+    # Kill backend when frontend exits
+    kill $BACKEND_PID 2>/dev/null || true
+elif [ "$1" = "pygame" ]; then
+    # Launch pygame version
+    print_msg "Launching Multi-Robot D* Lite Pygame Application..."
+    echo ""
+    python3 -m multi_robot_d_star_lite.pygame
 else
     print_msg "Executing: $@"
     echo ""

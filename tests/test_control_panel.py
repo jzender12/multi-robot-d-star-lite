@@ -6,7 +6,7 @@ Tests Button and ControlPanel classes.
 
 import pytest
 import pygame
-from multi_robot_d_star_lite.ui_components import Button, ControlPanel
+from multi_robot_d_star_lite.pygame.ui_components import Button, ControlPanel
 
 
 class TestButton:
@@ -336,7 +336,7 @@ class TestButtonGroup:
         """Button groups should allow exclusive selection"""
         pygame.init()
 
-        from multi_robot_d_star_lite.ui_components import ButtonGroup
+        from multi_robot_d_star_lite.pygame.ui_components import ButtonGroup
 
         group = ButtonGroup()
 

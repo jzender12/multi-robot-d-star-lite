@@ -15,7 +15,7 @@ import pytest
 import pygame
 from datetime import datetime
 from unittest.mock import Mock, patch, MagicMock
-from multi_robot_d_star_lite.game_log import GameLog
+from multi_robot_d_star_lite.pygame.game_log import GameLog
 
 
 class TestGameLogCreation:

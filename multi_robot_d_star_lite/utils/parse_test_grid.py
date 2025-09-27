@@ -4,8 +4,8 @@ Parser for visual test case format.
 Converts visual grid representations into GridWorld setups.
 """
 
-from ..world import GridWorld
-from ..coordinator import MultiAgentCoordinator
+from ..core.world import GridWorld
+from ..core.coordinator import MultiAgentCoordinator
 from typing import Dict, Tuple, List
 
 
