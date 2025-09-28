@@ -17,6 +17,8 @@ function App() {
     logs,
     isConnected,
     wsClient,
+    selectedRobot,
+    robotPlacementMode,
 
     // Actions
     connect,
@@ -30,7 +32,9 @@ function App() {
     setSimulationSpeed,
     clearLogs,
     selectRobot,
-    addLog
+    addLog,
+    setRobotPlacementMode,
+    clearBoard
   } = useGameStore()
 
   // Connect to WebSocket on mount with a small delay
@@ -123,27 +127,21 @@ function App() {
   }
 
   const handleRemoveRobot = () => {
-    // Remove the last robot
-    const robotIds = Object.keys(robots)
-    if (robotIds.length > 0) {
-      const lastRobotId = robotIds[robotIds.length - 1]
-      removeRobot(lastRobotId)
+    // Remove the selected robot
+    if (selectedRobot) {
+      removeRobot(selectedRobot)
+      selectRobot(null)
     }
   }
 
-  const handleReset = () => {
-    if (wsClient) {
-      wsClient.sendCommand({ type: 'reset' })
-      addLog('Game reset', 'info')
-    }
+  const handlePlaceRobot = () => {
+    // Enable robot placement mode
+    setRobotPlacementMode(true)
+    addLog('Click on the grid to place a robot', 'info')
   }
 
-  const handleClearAll = () => {
-    // Clear all obstacles
-    if (wsClient) {
-      wsClient.sendCommand({ type: 'clear_obstacles' })
-      addLog('Cleared all obstacles', 'info')
-    }
+  const handleClearBoard = () => {
+    clearBoard()
   }
 
   const handleTogglePause = () => {
@@ -190,14 +188,15 @@ function App() {
             isPaused={paused}
             obstacleMode={obstacleMode}
             simulationSpeed={simulationSpeed}
+            selectedRobot={selectedRobot}
             onAddRobot={handleAddRobot}
+            onPlaceRobot={handlePlaceRobot}
             onRemoveRobot={handleRemoveRobot}
             onResizeArena={(size) => resizeArena(size, size)}
             onTogglePause={handleTogglePause}
             onToggleObstacleMode={toggleObstacleMode}
             onSpeedChange={setSimulationSpeed}
-            onReset={handleReset}
-            onClearAll={handleClearAll}
+            onClearBoard={handleClearBoard}
           />
         </div>
       </div>

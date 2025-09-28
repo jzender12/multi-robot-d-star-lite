@@ -17,6 +17,7 @@ class MultiAgentCoordinator:
 
         # Collision blocking state management
         self.collision_blocked_robots = {}  # robot_id -> block reason
+        self.collision_details = []  # List of collision detail dicts
         # Collision tracking - using iterative detection now
         self.stuck_robots = set()  # Track robots with no path to goal
 
@@ -83,11 +84,13 @@ class MultiAgentCoordinator:
         Returns: Dict[robot_id, collision_reason]
         """
         colliding_robots = {}
+        collision_details = []  # Store detailed collision info
 
         # Get all robot IDs with paths
         robot_ids = list(self.paths.keys())
 
         if len(robot_ids) < 2:
+            self.collision_details = []
             return colliding_robots
 
         # Get next positions for each robot
@@ -114,12 +117,22 @@ class MultiAgentCoordinator:
                 if pos1 == pos2:
                     colliding_robots[robot1] = "same_cell_collision"
                     colliding_robots[robot2] = "same_cell_collision"
+                    collision_details.append({
+                        "type": "same_cell",
+                        "robots": [robot1, robot2],
+                        "position": pos1
+                    })
                     continue
 
                 # Swap collision - exchanging positions
                 if pos1 == curr_pos2 and pos2 == curr_pos1:
                     colliding_robots[robot1] = "swap_collision"
                     colliding_robots[robot2] = "swap_collision"
+                    collision_details.append({
+                        "type": "swap",
+                        "robots": [robot1, robot2],
+                        "positions": [curr_pos1, curr_pos2]
+                    })
                     continue
 
                 # Shear collision - perpendicular crossing
@@ -138,6 +151,11 @@ class MultiAgentCoordinator:
                            (dx1 != 0 and dy1 == 0 and dx2 == 0 and dy2 != 0):
                             colliding_robots[robot1] = "shear_collision"
                             colliding_robots[robot2] = "shear_collision"
+                            collision_details.append({
+                                "type": "shear",
+                                "robots": [robot1, robot2],
+                                "position": pos1
+                            })
                             continue
 
                 # Check reverse case - robot2 entering robot1's current position
@@ -154,6 +172,11 @@ class MultiAgentCoordinator:
                            (dx1 != 0 and dy1 == 0 and dx2 == 0 and dy2 != 0):
                             colliding_robots[robot1] = "shear_collision"
                             colliding_robots[robot2] = "shear_collision"
+                            collision_details.append({
+                                "type": "shear",
+                                "robots": [robot1, robot2],
+                                "position": pos2
+                            })
                             continue
 
         # Pass 2: Iteratively detect blocked robot collisions
@@ -176,6 +199,12 @@ class MultiAgentCoordinator:
                     if self.current_positions[blocked_id] == next_pos:
                         # This robot is trying to move into a blocked robot's position
                         new_collisions[robot_id] = "blocked_robot_collision"
+                        collision_details.append({
+                            "type": "blocked_robot",
+                            "robots": [robot_id],
+                            "blocked_by": blocked_id,
+                            "position": self.current_positions[blocked_id]
+                        })
                         break
 
             if not new_collisions:
@@ -184,6 +213,13 @@ class MultiAgentCoordinator:
             # Add new collisions to the set
             colliding_robots.update(new_collisions)
             iteration += 1
+
+        # Store collision details for later use
+        self.collision_details = collision_details
+
+        # If no collisions, ensure details are empty
+        if not colliding_robots:
+            self.collision_details = []
 
         return colliding_robots
 

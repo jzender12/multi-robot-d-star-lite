@@ -4,7 +4,7 @@
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background-color: #f5f5f5;
+  background: linear-gradient(to bottom, #0a0a0f, #0f0f14);
 }
 
 .statusBar {
@@ -13,25 +13,25 @@
   align-items: center;
   height: 40px;
   padding: 0 20px;
-  background-color: #2c3e50;
-  color: white;
-  font-size: 14px;
-  border-bottom: 2px solid #34495e;
+  background-color: #0f0f14;
+  color: #e4e4e7;
+  font-size: 13px;
+  border-bottom: 1px solid #1a1a1f;
 }
 
 .connected {
-  color: #2ecc71;
-  font-weight: bold;
+  color: #7c3aed;
+  font-weight: normal;
 }
 
 .disconnected {
-  color: #e74c3c;
-  font-weight: bold;
+  color: #6b7280;
+  font-weight: normal;
 }
 
 .shortcuts {
-  color: #95a5a6;
-  font-size: 12px;
+  color: #6b7280;
+  font-size: 11px;
 }
 
 .mainLayout {
@@ -41,10 +41,10 @@
 }
 
 .logPanel {
-  width: 200px;
+  width: 280px;
   height: 100%;
-  background-color: #f8f8f8;
-  border-right: 1px solid #ddd;
+  background-color: #0f0f14;
+  border-right: 1px solid #1a1a1f;
   overflow: hidden;
 }
 
@@ -53,7 +53,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #fff;
+  background-color: #0a0a0f;
   padding: 20px;
   overflow: auto;
 }
@@ -61,8 +61,8 @@
 .controlPanel {
   width: 200px;
   height: 100%;
-  background-color: #f0f0f0;
-  border-left: 1px solid #ddd;
+  background-color: #0f0f14;
+  border-left: 1px solid #1a1a1f;
   overflow-y: auto;
 }
 

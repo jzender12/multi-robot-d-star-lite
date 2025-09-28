@@ -1,5 +1,6 @@
 /**
  * Generate consistent colors for robots
+ * Cool, techy, purple-based palette with high contrast
  */
 
 export interface RobotColors {
@@ -8,38 +9,80 @@ export interface RobotColors {
   goal: string
 }
 
-const PREDEFINED_COLORS: Record<string, RobotColors> = {
-  robot0: {
-    main: '#0064C8',  // Blue
-    path: 'rgba(0, 100, 200, 0.3)',
-    goal: '#003264'
+// Distinct color themes for each robot - cool, techy, purple-based palette
+const ROBOT_THEMES: RobotColors[] = [
+  // Robot 0 - Deep violet
+  {
+    main: '#7c3aed',
+    path: 'rgba(124, 58, 237, 0.4)',
+    goal: '#9333ea'
   },
-  robot1: {
-    main: '#C83200',  // Red
-    path: 'rgba(200, 50, 0, 0.3)',
-    goal: '#641900'
+  // Robot 1 - Electric cyan
+  {
+    main: '#06b6d4',
+    path: 'rgba(6, 182, 212, 0.4)',
+    goal: '#22d3ee'
+  },
+  // Robot 2 - Hot magenta
+  {
+    main: '#ec4899',
+    path: 'rgba(236, 72, 153, 0.4)',
+    goal: '#f472b6'
+  },
+  // Robot 3 - Electric lime
+  {
+    main: '#84cc16',
+    path: 'rgba(132, 204, 22, 0.4)',
+    goal: '#a3e635'
+  },
+  // Robot 4 - Neon orange
+  {
+    main: '#f97316',
+    path: 'rgba(249, 115, 22, 0.4)',
+    goal: '#fb923c'
+  },
+  // Robot 5 - Teal
+  {
+    main: '#14b8a6',
+    path: 'rgba(20, 184, 166, 0.4)',
+    goal: '#2dd4bf'
+  },
+  // Robot 6 - Soft lavender
+  {
+    main: '#a78bfa',
+    path: 'rgba(167, 139, 250, 0.4)',
+    goal: '#c4b5fd'
+  },
+  // Robot 7 - Gold
+  {
+    main: '#eab308',
+    path: 'rgba(234, 179, 8, 0.4)',
+    goal: '#facc15'
+  },
+  // Robot 8 - Rose
+  {
+    main: '#f43f5e',
+    path: 'rgba(244, 63, 94, 0.4)',
+    goal: '#fb7185'
+  },
+  // Robot 9 - Mint
+  {
+    main: '#10b981',
+    path: 'rgba(16, 185, 129, 0.4)',
+    goal: '#34d399'
   }
-}
-
-const COLOR_PALETTE = [
-  { main: '#00C864', path: 'rgba(0, 200, 100, 0.3)', goal: '#006432' },  // Green
-  { main: '#C800C8', path: 'rgba(200, 0, 200, 0.3)', goal: '#640064' },  // Purple
-  { main: '#C8C800', path: 'rgba(200, 200, 0, 0.3)', goal: '#646400' },  // Yellow
-  { main: '#00C8C8', path: 'rgba(0, 200, 200, 0.3)', goal: '#006464' },  // Cyan
-  { main: '#FF6600', path: 'rgba(255, 102, 0, 0.3)', goal: '#803300' },  // Orange
-  { main: '#FF0066', path: 'rgba(255, 0, 102, 0.3)', goal: '#800033' },  // Pink
 ]
 
 export function getRobotColors(robotId: string): RobotColors {
-  // Check predefined colors first
-  if (PREDEFINED_COLORS[robotId]) {
-    return PREDEFINED_COLORS[robotId]
+  // Extract robot number from robotId (e.g., "robot0" -> 0)
+  const match = robotId.match(/robot(\d+)/)
+  if (!match) {
+    // Fallback to first theme if no match
+    return ROBOT_THEMES[0]
   }
 
-  // Generate color based on robot number
-  const match = robotId.match(/\d+/)
-  const robotNum = match ? parseInt(match[0]) : 0
-  const colorIndex = (robotNum - 2) % COLOR_PALETTE.length
+  const robotNum = parseInt(match[1], 10)
 
-  return COLOR_PALETTE[colorIndex]
+  // Use modulo to cycle through themes if we have more than 10 robots
+  return ROBOT_THEMES[robotNum % ROBOT_THEMES.length]
 }

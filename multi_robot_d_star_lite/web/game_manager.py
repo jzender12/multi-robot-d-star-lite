@@ -79,46 +79,31 @@ class GameManager:
         return result
 
     def _get_collision_info(self) -> Optional[List[Dict]]:
-        """Get collision information in frontend-compatible format."""
-        if not self.coordinator.collision_blocked_robots:
+        """Get collision information in frontend-compatible format using collision_details."""
+        if not hasattr(self.coordinator, 'collision_details') or not self.coordinator.collision_details:
             return None
 
-        # Group robots by collision type
-        collision_groups = {}
-        for robot_id, reason in self.coordinator.collision_blocked_robots.items():
-            collision_type = reason.replace("_collision", "")
-            if collision_type not in collision_groups:
-                collision_groups[collision_type] = []
-            collision_groups[collision_type].append(robot_id)
-
-        # Convert to frontend format: list of {type, robots} objects
+        # Use collision_details directly - it already has the correct format
         collisions = []
-        for collision_type, robot_list in collision_groups.items():
-            # For path collisions (swap, same_cell, shear), these should always have pairs
-            if collision_type in ["swap", "same_cell", "shear"]:
-                # Only add if we have at least 2 robots (frontend expects pairs)
-                if len(robot_list) >= 2:
-                    # If odd number, split into pairs and handle remainder
-                    for i in range(0, len(robot_list), 2):
-                        if i + 1 < len(robot_list):
-                            collisions.append({
-                                "type": collision_type,
-                                "robots": [robot_list[i], robot_list[i + 1]]
-                            })
-                        elif len(robot_list) > 2:
-                            # If we have an odd robot after pairs, it might be a cascade
-                            # Log it as blocked_robot instead
-                            collisions.append({
-                                "type": "blocked_robot",
-                                "robots": [robot_list[i]]
-                            })
-            else:
-                # For blocked_robot collisions, each robot gets its own entry
-                for robot in robot_list:
-                    collisions.append({
-                        "type": collision_type,
-                        "robots": [robot]
-                    })
+        for detail in self.coordinator.collision_details:
+            collision_data = {
+                "type": detail["type"],
+                "robots": detail["robots"]
+            }
+
+            # Add position info for same_cell and shear collisions
+            if "position" in detail:
+                collision_data["position"] = list(detail["position"])
+
+            # Add positions for swap collision
+            if "positions" in detail:
+                collision_data["positions"] = [list(p) for p in detail["positions"]]
+
+            # Add blocked_by info for blocked_robot collisions
+            if "blocked_by" in detail:
+                collision_data["blocked_by"] = detail["blocked_by"]
+
+            collisions.append(collision_data)
 
         return collisions if collisions else None
 

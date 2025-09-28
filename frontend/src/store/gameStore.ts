@@ -36,6 +36,9 @@ interface GameStore {
   // UI state
   selectedRobot: string | null
   obstacleMode: 'place' | 'draw'
+  robotPlacementMode: boolean  // True when placing a robot manually
+  placingRobotGoal: boolean    // True when placing goal after robot
+  ghostPosition: [number, number] | null  // Preview position for robot placement
   simulationSpeed: number
   isConnected: boolean
   connectionError: string | null
@@ -63,6 +66,10 @@ interface GameStore {
   resizeArena: (width: number, height: number) => void
   addLog: (message: string, type: LogMessage['type']) => void
   clearLogs: () => void
+  setRobotPlacementMode: (enabled: boolean) => void
+  setGhostPosition: (position: [number, number] | null) => void
+  setPlacingRobotGoal: (placing: boolean) => void
+  clearBoard: () => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -80,6 +87,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   selectedRobot: null,
   obstacleMode: 'place',
+  robotPlacementMode: false,
+  placingRobotGoal: false,
+  ghostPosition: null,
   simulationSpeed: 2,  // Default to 2 steps/s
   isConnected: false,
   connectionError: null,
@@ -145,16 +155,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (state.collision_info && Array.isArray(state.collision_info)) {
       for (const collision of state.collision_info) {
-        const { type, robots } = collision
+        const { type, robots, position, positions, blocked_by } = collision
         const collisionKey = `${type}:${robots.sort().join('-')}`
         newActiveCollisions.add(collisionKey)
 
         // Only log if this is a new collision
         if (!currentActiveCollisions.has(collisionKey)) {
-          // Format message based on number of robots
-          const message = robots.length >= 2
-            ? `Collision: ${type} between ${robots[0]} and ${robots[1]}`
-            : `Collision: ${type} - ${robots[0]}`
+          let message = ''
+
+          if (type === 'same_cell' && position) {
+            // Format: "Collision at (x,y): robot1, robot2"
+            message = `Collision at (${position[0]},${position[1]}): ${robots.join(', ')}`
+          } else if (type === 'swap') {
+            // Format: "Swap collision: robot1 ↔ robot2"
+            message = robots.length >= 2
+              ? `Swap collision: ${robots[0]} ↔ ${robots[1]}`
+              : `Swap collision: ${robots.join(', ')}`
+          } else if (type === 'shear' && position) {
+            // Format: "Shear collision at (x,y): robot1 ↔ robot2"
+            message = robots.length >= 2
+              ? `Shear collision at (${position[0]},${position[1]}): ${robots[0]} ↔ ${robots[1]}`
+              : `Shear collision: ${robots.join(', ')}`
+          } else if (type === 'blocked_robot' && blocked_by) {
+            // Format: "Blocked: robot1 (by robot2)"
+            message = `Blocked: ${robots[0]} (by ${blocked_by})`
+          } else {
+            // Fallback format
+            message = robots.length >= 2
+              ? `${type}: ${robots[0]} and ${robots[1]}`
+              : `${type}: ${robots[0]}`
+          }
 
           get().addLog(message, 'collision')
         }
@@ -271,5 +301,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   clearLogs: () => {
     set({ logs: [] })
+  },
+
+  setRobotPlacementMode: (enabled: boolean) => {
+    set({ robotPlacementMode: enabled, ghostPosition: null })
+    if (!enabled) {
+      set({ placingRobotGoal: false })
+    }
+  },
+
+  setGhostPosition: (position: [number, number] | null) => {
+    set({ ghostPosition: position })
+  },
+
+  setPlacingRobotGoal: (placing: boolean) => {
+    set({ placingRobotGoal: placing })
+  },
+
+  clearBoard: () => {
+    const { wsClient } = get()
+    if (wsClient) {
+      // Clear obstacles
+      wsClient.sendCommand({ type: 'clear_obstacles' })
+      // Clear all robots
+      const robots = get().robots
+      Object.keys(robots).forEach(robotId => {
+        wsClient.sendRemoveRobot(robotId)
+      })
+      get().addLog('Cleared board', 'info')
+    }
   }
 }))
