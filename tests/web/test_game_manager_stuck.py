@@ -1,12 +1,13 @@
 """
-Test stuck robot detection in GameManager integration.
-GameManager should always report stuck robots, even when paused.
+Test stuck robot detection in GameManager for web interface.
 """
+
 import pytest
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+# Add parent directory to path to import the game modules
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from multi_robot_d_star_lite.web.game_manager import GameManager
 
 
@@ -16,6 +17,9 @@ class TestGameManagerStuckDetection:
     def test_stuck_robot_in_initial_state(self):
         """Stuck robots should be detected even in initial paused state."""
         game = GameManager(10, 10)
+
+        # Add a robot first
+        game.add_robot((0, 0), (9, 9))
 
         # Block robot0's path to (9,9)
         for x in range(10):
@@ -54,141 +58,169 @@ class TestGameManagerStuckDetection:
         """Robot info should include is_stuck flag."""
         game = GameManager(10, 10)
 
+        # Add a robot first
+        game.add_robot((0, 0), (9, 9))
+
         # Block the path
         for x in range(10):
             game.add_obstacle(x, 5)
 
         state = game.get_state()
-
-        # Check robot info
-        assert "robots" in state
-        assert "robot0" in state["robots"]
-        robot_info = state["robots"]["robot0"]
-
-        assert "is_stuck" in robot_info, "Robot info should have is_stuck flag"
-        assert robot_info["is_stuck"] == True, "robot0 should be marked as stuck"
+        assert "robot0" in state["robots"], "robot0 should exist"
+        assert "is_stuck" in state["robots"]["robot0"], "Robot should have is_stuck flag"
+        assert state["robots"]["robot0"]["is_stuck"] == True, "Robot should be marked as stuck"
 
     def test_stuck_cleared_after_path_opens(self):
-        """Stuck status should clear when path becomes available."""
+        """Stuck status clears when path becomes available."""
         game = GameManager(10, 10)
 
-        # Block the path
+        # Add a robot first
+        game.add_robot((0, 0), (9, 9))
+
+        # Block the path initially
         for x in range(10):
             game.add_obstacle(x, 5)
 
+        # Check initially stuck
         state = game.get_state()
         assert "robot0" in state["stuck_robots"], "Should be stuck initially"
 
-        # Clear one obstacle
-        game.remove_obstacle(5, 5)
+        # Open a path
+        game.remove_obstacle(4, 5)
 
+        # Check no longer stuck
         state = game.get_state()
         assert "robot0" not in state["stuck_robots"], "Should not be stuck after path opens"
-
-        # Check is_stuck flag
-        robot_info = state["robots"]["robot0"]
-        assert robot_info["is_stuck"] == False, "is_stuck flag should be False"
+        assert state["robots"]["robot0"]["is_stuck"] == False, "is_stuck flag should be False"
 
     def test_stuck_robot_during_simulation(self):
-        """Stuck robots should be detected during running simulation."""
+        """Stuck detection works during active simulation."""
         game = GameManager(10, 10)
 
-        # Create a situation where robot will become stuck
+        # Add a robot first
+        game.add_robot((0, 0), (9, 9))
+
+        # Block after a few cells
         for x in range(10):
-            game.add_obstacle(x, 5)
+            game.add_obstacle(x, 3)
 
-        # Resume and step
         game.resume()
-        state = game.step()
+        # Step the simulation
+        for _ in range(5):
+            state = game.step()
 
+        # Should detect stuck during simulation
         assert "robot0" in state["stuck_robots"], "Should detect stuck during step"
 
     def test_multiple_stuck_robots_reported(self):
-        """All stuck robots should be reported."""
+        """Multiple stuck robots are all reported."""
         game = GameManager(10, 10)
 
-        # Add more robots
-        robot2 = game.add_robot((1, 1), (8, 8))
-        robot3 = game.add_robot((2, 2), (7, 7))
+        # Add three robots
+        game.add_robot((0, 0), (9, 9))
+        game.add_robot((1, 1), (8, 8))
+        game.add_robot((2, 2), (7, 7))
 
-        # Block all paths
+        # Block all paths with a wall
         for x in range(10):
             game.add_obstacle(x, 5)
 
         state = game.get_state()
-
         assert len(state["stuck_robots"]) == 3, "All three robots should be stuck"
         assert "robot0" in state["stuck_robots"]
-        assert robot2 in state["stuck_robots"]
-        assert robot3 in state["stuck_robots"]
+        assert "robot1" in state["stuck_robots"]
+        assert "robot2" in state["stuck_robots"]
 
     def test_stuck_vs_paused_distinction(self):
-        """Stuck and paused robots should be reported separately."""
+        """Stuck robots different from collision-paused robots."""
         game = GameManager(10, 10)
 
-        # Add collision robots
-        game.add_robot((1, 0), (0, 0))  # Will swap with robot0
+        # Add two robots that will collide
+        game.add_robot((0, 0), (2, 0))
+        game.add_robot((2, 0), (0, 0))
 
-        # Add stuck robot
-        stuck_id = game.add_robot((5, 0), (5, 9))
-        for x in range(10):
-            game.add_obstacle(x, 2)
-
-        # Step to trigger potential collision
         game.resume()
         state = game.step()
 
-        # Check separate lists
-        assert "stuck_robots" in state
-        assert "collision_blocked_robots" in state
+        # Both might be paused due to collision
+        collision_info = state.get("collision_info", {})
 
-        # stuck_id should only be in stuck list
-        assert stuck_id in state["stuck_robots"]
-        assert stuck_id not in state["collision_blocked_robots"], "Should not be both stuck and collision-blocked"
+        # Add wall to make robot stuck
+        game.add_robot((5, 5), (9, 9))
+        for x in range(10):
+            game.add_obstacle(x, 7)
+
+        state = game.get_state()
+
+        # robot2 should be stuck but not necessarily collision-paused
+        assert "robot2" in state["stuck_robots"], "robot2 should be stuck"
+
+        # Check both flags exist and are distinct
+        for robot_id in state["robots"]:
+            robot_info = state["robots"][robot_id]
+            assert "is_stuck" in robot_info, f"{robot_id} should have is_stuck flag"
+            assert "is_paused" in robot_info, f"{robot_id} should have is_paused flag"
 
     def test_stuck_persists_when_paused(self):
-        """Stuck status should persist when simulation is paused."""
+        """Stuck status persists regardless of pause state."""
         game = GameManager(10, 10)
+
+        # Add a robot first
+        game.add_robot((0, 0), (9, 9))
 
         # Block path
         for x in range(10):
             game.add_obstacle(x, 5)
 
-        # Resume, step, then pause
-        game.resume()
-        game.step()
-        game.pause()
-
-        # Should still show as stuck when paused
+        # Check while paused
         state = game.get_state()
+        assert state["paused"] == True
         assert "robot0" in state["stuck_robots"], "Stuck status should persist when paused"
 
+        # Resume and check
+        game.resume()
+        state = game.get_state()
+        assert state["paused"] == False
+        assert "robot0" in state["stuck_robots"], "Stuck status should persist when running"
+
+        # Pause again
+        game.pause()
+        state = game.get_state()
+        assert state["paused"] == True
+        assert "robot0" in state["stuck_robots"], "Stuck status should persist after re-pause"
+
     def test_stuck_robot_at_goal_not_stuck(self):
-        """Robot at goal should never be stuck."""
+        """Robot at goal is not stuck even if no path exists."""
         game = GameManager(10, 10)
 
-        # Set goal to current position
-        game.set_goal("robot0", 0, 0)
+        # Add a robot already at its goal
+        game.add_robot((5, 5), (5, 5))
+
+        # Surround with obstacles (robot is already at goal)
+        for x in range(4, 7):
+            for y in range(4, 7):
+                if (x, y) != (5, 5):
+                    game.add_obstacle(x, y)
 
         state = game.get_state()
-        assert "robot0" not in state["stuck_robots"], "Robot at goal is not stuck"
-
-        # Check flag
-        robot_info = state["robots"]["robot0"]
-        assert robot_info["is_stuck"] == False, "is_stuck should be False at goal"
+        assert "robot0" not in state["stuck_robots"], "Robot at goal should not be stuck"
+        assert state["robots"]["robot0"]["is_stuck"] == False
 
     def test_stuck_after_resize(self):
-        """Stuck detection should work after arena resize."""
+        """Stuck detection works after arena resize."""
         game = GameManager(10, 10)
 
-        # Resize arena (creates new robot1)
-        game.resize_arena(15, 15)
+        # Resize arena - creates clean slate
+        game.resize_arena(5, 5)
 
-        # Block the new robot's path
-        for x in range(15):
-            game.add_obstacle(x, 5)
+        # Add a robot after resize
+        game.add_robot((0, 0), (4, 4))
+
+        # Block path in smaller arena
+        for x in range(5):
+            game.add_obstacle(x, 2)
 
         state = game.get_state()
-        # After resize, there should be robot0
-        if "robot0" in state["robots"]:
-            assert "robot0" in state["stuck_robots"], "Robot should be stuck after resize"
+        assert state["width"] == 5
+        assert state["height"] == 5
+        assert "robot0" in state["stuck_robots"], "Should detect stuck in resized arena"

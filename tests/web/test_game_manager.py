@@ -10,16 +10,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 
 def test_game_manager_init():
-    """GameManager initializes with default setup."""
+    """GameManager initializes with clean slate."""
     from multi_robot_d_star_lite.web.game_manager import GameManager
 
     game = GameManager()
     assert game.world.width == 10
     assert game.world.height == 10
-    assert "robot0" in game.coordinator.current_positions
-    assert game.coordinator.current_positions["robot0"] == (0, 0)
-    assert game.coordinator.goals["robot0"] == (9, 9)
+    assert len(game.coordinator.current_positions) == 0  # No robots at start
+    assert len(game.coordinator.goals) == 0  # No goals at start
     assert game.step_count == 0
+    assert game.paused == True  # Starts paused
 
 
 def test_serialize_game_state():
@@ -27,6 +27,9 @@ def test_serialize_game_state():
     from multi_robot_d_star_lite.web.game_manager import GameManager
 
     game = GameManager()
+    # Add a robot to test serialization
+    game.add_robot((0, 0), (9, 9))
+
     state = game.get_state()
 
     assert state["type"] == "state"
@@ -51,6 +54,8 @@ def test_process_step():
     from multi_robot_d_star_lite.web.game_manager import GameManager
 
     game = GameManager()
+    # Add a robot first
+    game.add_robot((0, 0), (9, 9))
     initial_pos = game.coordinator.current_positions["robot0"]
 
     # Game starts paused, need to resume first
@@ -69,6 +74,8 @@ def test_add_obstacle_updates_paths():
     from multi_robot_d_star_lite.web.game_manager import GameManager
 
     game = GameManager()
+    # Add a robot first
+    game.add_robot((0, 0), (9, 9))
     initial_path = list(game.coordinator.paths["robot0"]) if game.coordinator.paths["robot0"] else []
 
     game.add_obstacle(5, 5)
@@ -99,6 +106,8 @@ def test_set_robot_goal():
     from multi_robot_d_star_lite.web.game_manager import GameManager
 
     game = GameManager()
+    # Add a robot first
+    game.add_robot((0, 0), (9, 9))
     success = game.set_goal("robot0", 5, 5)
 
     assert success == True
@@ -117,10 +126,14 @@ def test_add_robot():
     game = GameManager()
     robot_id = game.add_robot((2, 2), (7, 7))
 
-    assert robot_id == "robot1"
-    assert game.coordinator.current_positions["robot1"] == (2, 2)
-    assert game.coordinator.goals["robot1"] == (7, 7)
-    assert "robot1" in game.coordinator.paths
+    assert robot_id == "robot0"  # First robot since we start clean
+    assert game.coordinator.current_positions["robot0"] == (2, 2)
+    assert game.coordinator.goals["robot0"] == (7, 7)
+    assert "robot0" in game.coordinator.paths
+
+    # Add another robot
+    robot_id2 = game.add_robot((3, 3), (8, 8))
+    assert robot_id2 == "robot1"
 
 
 def test_get_robot_positions():
@@ -128,6 +141,7 @@ def test_get_robot_positions():
     from multi_robot_d_star_lite.web.game_manager import GameManager
 
     game = GameManager()
+    game.add_robot((0, 0), (9, 9))
     game.add_robot((2, 2), (7, 7))
 
     positions = game.get_robot_positions()
@@ -140,7 +154,8 @@ def test_collision_detection():
     from multi_robot_d_star_lite.web.game_manager import GameManager
 
     game = GameManager()
-    # Add robot that will collide with robot0
+    # Add robots that will collide
+    game.add_robot((0, 0), (1, 0))
     game.add_robot((1, 0), (0, 0))
 
     # Step should detect collision

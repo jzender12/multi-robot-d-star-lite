@@ -159,6 +159,20 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
         )
       }
 
+      // Check if robot is at its goal
+      const isAtGoal = robot.pos[0] === robot.goal[0] && robot.pos[1] === robot.goal[1]
+      if (isAtGoal) {
+        // Green border for robots at goal
+        ctx.strokeStyle = '#22c55e'
+        ctx.lineWidth = 3
+        ctx.strokeRect(
+          robot.pos[0] * cellSize + 3,
+          robot.pos[1] * cellSize + 3,
+          cellSize - 6,
+          cellSize - 6
+        )
+      }
+
       // Draw robot
       ctx.fillStyle = colors.main
       ctx.beginPath()
@@ -213,14 +227,10 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
 
       if (!hasRobot && !isObstacle) {
         // Place robot with temporary goal at same position
+        useGameStore.setState({ expectingNewRobot: true })
         addRobot(gridX, gridY, gridX, gridY)
         setRobotPlacementMode(false)
-        setPlacingRobotGoal(true)
-        // Auto-select the new robot (it will be the highest numbered one)
-        const robotIds = Object.keys(robots)
-        const newRobotId = `robot${robotIds.length}` // Since we just added one
-        selectRobot(newRobotId)
-        addLog('Robot placed. Click to set its goal', 'info')
+        // The robot will be auto-selected when the state update arrives
       }
       return
     }

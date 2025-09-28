@@ -157,7 +157,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
 const styles = {
   panel: {
-    width: '200px',
+    width: '100%',
     padding: '10px',
     backgroundColor: '#0f0f14',
     borderLeft: '1px solid #1a1a1f',

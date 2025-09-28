@@ -33,7 +33,12 @@ class MultiAgentCoordinator:
             print(f"Cannot add {robot_id}: Maximum of 10 robots reached")
             return False
 
-        # Check if start position is already occupied
+        # Check if start position has an obstacle
+        if not self.world.is_free(start[0], start[1]):
+            print(f"Cannot add {robot_id}: Position {start} has an obstacle")
+            return False
+
+        # Check if start position is already occupied by another robot
         for existing_robot_id, pos in self.current_positions.items():
             if pos == start:
                 print(f"Cannot add {robot_id}: Position {start} is occupied by {existing_robot_id}")
@@ -648,7 +653,7 @@ class MultiAgentCoordinator:
     def resize_world(self, new_width: int, new_height: int):
         """
         Resize world to new dimensions with clean slate.
-        Clears everything and places robot1 at start.
+        Clears everything - no robots, no obstacles.
         """
         # Clear all robots and obstacles
         self.clear_all_robots()
@@ -658,12 +663,7 @@ class MultiAgentCoordinator:
         self.world.static_obstacles.clear()
         self.world.grid.fill(0)  # All empty cells
 
-        # Add robot0 at top-left with goal at bottom-right
-        self.add_robot("robot0",
-                       start=(0, 0),
-                       goal=(new_width - 1, new_height - 1))
-
-        print(f"Resized world to {new_width}x{new_height} - Clean slate with robot0")
+        print(f"Resized world to {new_width}x{new_height} - Clean slate")
 
     def reset_to_default(self):
         """

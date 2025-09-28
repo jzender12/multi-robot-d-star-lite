@@ -42,6 +42,7 @@ interface GameStore {
   simulationSpeed: number
   isConnected: boolean
   connectionError: string | null
+  expectingNewRobot: boolean  // True when we just added a robot and waiting for it
 
   // WebSocket
   wsClient: WebSocketClient | null
@@ -93,6 +94,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   simulationSpeed: 2,  // Default to 2 steps/s
   isConnected: false,
   connectionError: null,
+  expectingNewRobot: false,
 
   wsClient: null,
   logs: [],
@@ -137,6 +139,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Transform robot data from backend format to frontend format
     const robots: Record<string, RobotInfo> = {}
     const paths: Record<string, Array<[number, number]>> = {}
+    const previousRobots = get().robots
+    let newRobotId: string | null = null
 
     if (state.robots) {
       for (const [robotId, robotData] of Object.entries(state.robots)) {
@@ -146,6 +150,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
           goal: robot.goal as [number, number]
         }
         paths[robotId] = robot.path || []
+
+        // Check if this is a new robot
+        if (!(robotId in previousRobots)) {
+          newRobotId = robotId
+        }
+      }
+    }
+
+    // If we were expecting a new robot and one appeared, select it
+    if (get().expectingNewRobot && newRobotId) {
+      set({ expectingNewRobot: false, selectedRobot: newRobotId, placingRobotGoal: true })
+      get().addLog('Robot placed. Click to set its goal', 'info')
+    }
+
+    // Check for robots reaching their goals
+    for (const [robotId, robot] of Object.entries(robots)) {
+      const prevRobot = previousRobots[robotId]
+      if (prevRobot) {
+        const wasAtGoal = prevRobot.pos[0] === prevRobot.goal[0] && prevRobot.pos[1] === prevRobot.goal[1]
+        const isAtGoal = robot.pos[0] === robot.goal[0] && robot.pos[1] === robot.goal[1]
+
+        // Robot just reached its goal
+        if (!wasAtGoal && isAtGoal) {
+          get().addLog(`${robotId} reached its goal!`, 'success')
+        }
       }
     }
 
@@ -265,7 +294,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { wsClient } = get()
     if (wsClient) {
       wsClient.sendAddRobot(startX, startY, goalX, goalY)
-      get().addLog(`Added new robot at (${startX}, ${startY})`, 'success')
+      // Don't log here if we're in placement mode - will log when state updates
+      if (!get().robotPlacementMode) {
+        get().addLog(`Added new robot at (${startX}, ${startY})`, 'success')
+      }
     }
   },
 
@@ -321,6 +353,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   clearBoard: () => {
     const { wsClient } = get()
     if (wsClient) {
+      // Pause the simulation first
+      get().pauseSimulation()
       // Clear obstacles
       wsClient.sendCommand({ type: 'clear_obstacles' })
       // Clear all robots

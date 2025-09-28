@@ -184,13 +184,13 @@ class TestCoordinatorResize:
         if hasattr(coordinator, 'resize_world'):
             coordinator.resize_world(15, 15)
 
-            # Only robot0 should exist with new path
-            assert "robot0" in coordinator.paths
-            assert "robot2" not in coordinator.paths  # Clean slate removes robot2
-            # robot0 should have valid path from (0,0) to (14,14)
-            assert len(coordinator.paths["robot0"]) > 0
-            assert coordinator.current_positions["robot0"] == (0, 0)
-            assert coordinator.goals["robot0"] == (14, 14)
+            # No robots should exist after clean slate
+            assert len(coordinator.paths) == 0
+            assert "robot0" not in coordinator.paths
+            assert "robot1" not in coordinator.paths
+            assert "robot2" not in coordinator.paths
+            assert len(coordinator.current_positions) == 0
+            assert len(coordinator.goals) == 0
 
     def test_coordinator_removes_invalid_robots(self):
         """Coordinator should handle robots outside new bounds"""
@@ -205,11 +205,12 @@ class TestCoordinatorResize:
         if hasattr(coordinator, 'resize_world'):
             coordinator.resize_world(5, 5)
 
-            # Only robot0 should remain after clean slate
-            assert "robot0" in coordinator.planners
+            # No robots should remain after clean slate
+            assert len(coordinator.planners) == 0
+            assert "robot0" not in coordinator.planners
+            assert "robot1" not in coordinator.planners
             assert "robot2" not in coordinator.planners
-            assert "robot0" in coordinator.current_positions
-            assert "robot2" not in coordinator.current_positions
+            assert len(coordinator.current_positions) == 0
 
     def test_coordinator_resize_clean_slate(self):
         """Resize should create clean slate with robot0"""
@@ -225,12 +226,13 @@ class TestCoordinatorResize:
         if hasattr(coordinator, 'resize_world'):
             coordinator.resize_world(5, 5)
 
-            # Should have clean slate with only robot0
-            assert len(coordinator.planners) == 1
-            assert "robot0" in coordinator.planners
+            # Should have clean slate with no robots
+            assert len(coordinator.planners) == 0
+            assert "robot0" not in coordinator.planners
+            assert "robot1" not in coordinator.planners
             assert "robot2" not in coordinator.planners
-            assert coordinator.current_positions["robot0"] == (0, 0)
-            assert coordinator.goals["robot0"] == (4, 4)  # bottom-right of 5x5
+            assert len(coordinator.current_positions) == 0
+            assert len(coordinator.goals) == 0
             assert len(world.static_obstacles) == 0
 
 
@@ -313,18 +315,18 @@ class TestIntegration:
             assert world.height == 6
             assert len(world.static_obstacles) == 0  # All obstacles cleared
 
-            # Only robot0 exists at new position
-            assert len(coordinator.planners) == 1
-            assert "robot0" in coordinator.planners
+            # No robots exist after resize
+            assert len(coordinator.planners) == 0
+            assert "robot0" not in coordinator.planners
+            assert "robot1" not in coordinator.planners
             assert "robot2" not in coordinator.planners
 
-            # robot0 at top-left, goal at bottom-right
-            assert coordinator.current_positions["robot0"] == (0, 0)
-            assert coordinator.goals["robot0"] == (5, 5)
+            # No positions or goals
+            assert len(coordinator.current_positions) == 0
+            assert len(coordinator.goals) == 0
 
-            # Path should be computable
-            if "robot0" in coordinator.paths:
-                assert len(coordinator.paths["robot0"]) > 0
+            # No paths
+            assert len(coordinator.paths) == 0
 
 
 if __name__ == "__main__":

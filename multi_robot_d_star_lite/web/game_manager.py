@@ -16,11 +16,11 @@ class GameManager:
         self.coordinator = MultiAgentCoordinator(self.world)
         self.step_count = 0
         self.paused = True  # Start paused
-        self.robot_counter = 0
 
-        # Add initial robot
-        self.coordinator.add_robot("robot0", start=(0, 0), goal=(9, 9))
-        self.coordinator.recompute_paths()
+        # Initialize robot ID pool with IDs 0-9 in reverse order (so pop gives 0 first)
+        self.robot_id_pool = list(range(9, -1, -1))  # [9,8,7,6,5,4,3,2,1,0]
+
+        # Start with clean slate - no robots
 
     def get_state(self) -> Dict[str, Any]:
         """Get current game state as JSON-serializable dict."""
@@ -130,13 +130,22 @@ class GameManager:
 
     def add_robot(self, start: Tuple[int, int], goal: Tuple[int, int]) -> Optional[str]:
         """Add new robot to the system."""
-        self.robot_counter += 1
-        robot_id = f"robot{self.robot_counter}"
+        # Check if we have available robot IDs
+        if not self.robot_id_pool:
+            return None  # No available robot IDs (max 10 robots)
+
+        # Get next available robot ID from pool
+        robot_num = self.robot_id_pool.pop()
+        robot_id = f"robot{robot_num}"
+
         success = self.coordinator.add_robot(robot_id, start=start, goal=goal)
         if success:
             self.coordinator.recompute_paths()
             return robot_id
-        return None
+        else:
+            # Return ID to pool if add failed
+            self.robot_id_pool.append(robot_num)
+            return None
 
     def pause(self):
         """Pause simulation."""
@@ -151,14 +160,21 @@ class GameManager:
         self.coordinator.resize_world(width, height)
         # Update our world reference since coordinator creates a new one
         self.world = self.coordinator.world
-        # Reset robot counter
-        self.robot_counter = 0
+        # Reset robot ID pool to full set and ensure paused
+        self.robot_id_pool = list(range(9, -1, -1))  # [9,8,7,6,5,4,3,2,1,0]
+        self.paused = True
         return self.get_state()
 
     def remove_robot(self, robot_id: str) -> bool:
         """Remove a robot from the system."""
         success = self.coordinator.remove_robot(robot_id)
         if success:
+            # Return robot ID to pool for reuse
+            try:
+                robot_num = int(robot_id.replace("robot", ""))
+                self.robot_id_pool.append(robot_num)
+            except ValueError:
+                pass  # Invalid robot ID format, ignore
             self.coordinator.recompute_paths()
         return success
 

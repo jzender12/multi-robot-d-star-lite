@@ -31,10 +31,8 @@ def test_receive_initial_state():
     with client.websocket_connect("/ws") as websocket:
         data = websocket.receive_json()
 
-        # Check initial robot setup
-        assert "robot0" in data["robots"]
-        assert data["robots"]["robot0"]["position"] == [0, 0]
-        assert data["robots"]["robot0"]["goal"] == [9, 9]
+        # Check initial state has no robots (clean slate)
+        assert len(data["robots"]) == 0
 
         # Check initial grid
         assert data["width"] == 10
@@ -51,6 +49,16 @@ def test_step_command():
         # Receive initial state
         initial = websocket.receive_json()
 
+        # Add a robot first
+        websocket.send_json({
+            "type": "add_robot",
+            "x": 0,
+            "y": 0,
+            "goal_x": 9,
+            "goal_y": 9
+        })
+        robot_added = websocket.receive_json()
+
         # Resume the game first (starts paused)
         websocket.send_json({"type": "resume"})
         resumed = websocket.receive_json()
@@ -63,7 +71,7 @@ def test_step_command():
         assert updated["type"] == "state"
         # Robot should have moved (if path exists)
         if "robot0" in updated["robots"] and updated["robots"]["robot0"].get("path"):
-            assert updated["robots"]["robot0"]["position"] != initial["robots"]["robot0"]["position"]
+            assert updated["robots"]["robot0"]["position"] != robot_added["robots"]["robot0"]["position"]
 
 
 def test_add_obstacle_command():
@@ -74,6 +82,16 @@ def test_add_obstacle_command():
     with client.websocket_connect("/ws") as websocket:
         # Receive initial state
         websocket.receive_json()
+
+        # Add a robot first
+        websocket.send_json({
+            "type": "add_robot",
+            "x": 0,
+            "y": 0,
+            "goal_x": 9,
+            "goal_y": 9
+        })
+        robot_added = websocket.receive_json()
 
         # Add obstacle at (5, 5)
         websocket.send_json({
@@ -124,6 +142,16 @@ def test_set_goal_command():
         # Receive initial state
         websocket.receive_json()
 
+        # Add a robot first
+        websocket.send_json({
+            "type": "add_robot",
+            "x": 0,
+            "y": 0,
+            "goal_x": 9,
+            "goal_y": 9
+        })
+        robot_added = websocket.receive_json()
+
         # Set new goal for robot0
         websocket.send_json({
             "type": "set_goal",
@@ -158,9 +186,9 @@ def test_add_robot_command():
 
         # Receive updated state
         updated = websocket.receive_json()
-        assert "robot1" in updated["robots"]
-        assert updated["robots"]["robot1"]["position"] == [2, 2]
-        assert updated["robots"]["robot1"]["goal"] == [7, 7]
+        assert "robot0" in updated["robots"]
+        assert updated["robots"]["robot0"]["position"] == [2, 2]
+        assert updated["robots"]["robot0"]["goal"] == [7, 7]
 
 
 def test_invalid_command_handling():
