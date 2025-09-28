@@ -11,6 +11,7 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [lastDragCell, setLastDragCell] = useState<[number, number] | null>(null)
+  const [mousePos, setMousePos] = useState<[number, number] | null>(null)
 
   const {
     gridSize,
@@ -22,10 +23,18 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
     stuckRobots,
     collisionInfo,
     obstacleMode,
+    robotPlacementMode,
+    placingRobotGoal,
+    ghostPosition,
     selectRobot,
     addObstacle,
     removeObstacle,
-    setGoal
+    setGoal,
+    addRobot,
+    setRobotPlacementMode,
+    setPlacingRobotGoal,
+    setGhostPosition,
+    addLog
   } = useGameStore()
 
   const [width, height] = gridSize
@@ -44,8 +53,8 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight)
 
     // Draw grid lines
-    ctx.strokeStyle = '#ccc'
-    ctx.lineWidth = 1
+    ctx.strokeStyle = '#2a2a35'
+    ctx.lineWidth = 0.5
     for (let i = 0; i <= width; i++) {
       ctx.beginPath()
       ctx.moveTo(i * cellSize, 0)
@@ -60,7 +69,7 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
     }
 
     // Draw obstacles
-    ctx.fillStyle = '#323232'
+    ctx.fillStyle = '#2d2d35'
     obstacles.forEach(([x, y]) => {
       ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize)
     })
@@ -91,18 +100,18 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
       const colors = getRobotColors(robotId)
       const [goalX, goalY] = gridToPixel(robot.goal[0], robot.goal[1], cellSize)
 
-      // Draw goal marker
+      // Draw goal marker (square)
       ctx.fillStyle = colors.goal
-      ctx.beginPath()
-      ctx.arc(goalX, goalY, cellSize / 4, 0, Math.PI * 2)
-      ctx.fill()
+      const goalSize = cellSize / 3 * 1.2  // 20% bigger
+      ctx.fillRect(goalX - goalSize / 2, goalY - goalSize / 2, goalSize, goalSize)
 
       // Draw goal label
-      ctx.fillStyle = 'white'
-      ctx.font = '12px Arial'
+      ctx.fillStyle = '#e4e4e7'
+      ctx.font = '12px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('G', goalX, goalY)
+      const robotNumber = robotId.replace('robot', '')
+      ctx.fillText(robotNumber, goalX, goalY)
     })
 
     // Draw robots
@@ -112,8 +121,8 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
 
       // Draw selection highlight
       if (selectedRobot === robotId) {
-        ctx.strokeStyle = '#FFD700'
-        ctx.lineWidth = 3
+        ctx.strokeStyle = '#a855f7'
+        ctx.lineWidth = 2
         ctx.strokeRect(
           robot.pos[0] * cellSize + 2,
           robot.pos[1] * cellSize + 2,
@@ -129,9 +138,9 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
 
       // Draw collision or stuck indicator
       if (isInCollision) {
-        // Orange thick border for collision
-        ctx.strokeStyle = '#FF6600'
-        ctx.lineWidth = 3
+        // Muted orange border for collision
+        ctx.strokeStyle = '#ea580c'
+        ctx.lineWidth = 2
         ctx.strokeRect(
           robot.pos[0] * cellSize + 5,
           robot.pos[1] * cellSize + 5,
@@ -139,14 +148,28 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
           cellSize - 10
         )
       } else if (stuckRobots.includes(robotId)) {
-        // Red border for stuck robots (cannot reach goal)
-        ctx.strokeStyle = '#FF0000'
+        // Muted red border for stuck robots (cannot reach goal)
+        ctx.strokeStyle = '#dc2626'
         ctx.lineWidth = 2
         ctx.strokeRect(
           robot.pos[0] * cellSize + 5,
           robot.pos[1] * cellSize + 5,
           cellSize - 10,
           cellSize - 10
+        )
+      }
+
+      // Check if robot is at its goal
+      const isAtGoal = robot.pos[0] === robot.goal[0] && robot.pos[1] === robot.goal[1]
+      if (isAtGoal) {
+        // Green border for robots at goal
+        ctx.strokeStyle = '#22c55e'
+        ctx.lineWidth = 3
+        ctx.strokeRect(
+          robot.pos[0] * cellSize + 3,
+          robot.pos[1] * cellSize + 3,
+          cellSize - 6,
+          cellSize - 6
         )
       }
 
@@ -157,13 +180,32 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
       ctx.fill()
 
       // Draw robot ID
-      ctx.fillStyle = 'white'
-      ctx.font = 'bold 14px Arial'
+      ctx.fillStyle = '#0a0a0f'
+      ctx.font = 'bold 14px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(robotId.replace('robot', 'R'), robotX, robotY)
+      const robotNum = robotId.replace('robot', '')
+      ctx.fillText(robotNum, robotX, robotY)
     })
-  }, [gridSize, robots, obstacles, paths, selectedRobot, stuckRobots, collisionInfo, cellSize, canvasWidth, canvasHeight, width, height])
+
+    // Draw ghost robot preview when in placement mode
+    if (robotPlacementMode && ghostPosition) {
+      const [ghostX, ghostY] = gridToPixel(ghostPosition[0], ghostPosition[1], cellSize)
+
+      // Draw semi-transparent purple circle
+      ctx.fillStyle = 'rgba(124, 58, 237, 0.5)'
+      ctx.beginPath()
+      ctx.arc(ghostX, ghostY, cellSize / 3, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Draw preview text
+      ctx.fillStyle = 'rgba(10, 10, 15, 0.5)'
+      ctx.font = 'bold 14px monospace'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('?', ghostX, ghostY)
+    }
+  }, [gridSize, robots, obstacles, paths, selectedRobot, stuckRobots, collisionInfo, cellSize, canvasWidth, canvasHeight, width, height, robotPlacementMode, ghostPosition])
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -175,6 +217,35 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
     const [gridX, gridY] = pixelToGrid(x, y, cellSize)
 
     if (!isValidGridPos(gridX, gridY, width, height)) return
+
+    // Handle robot placement mode
+    if (robotPlacementMode) {
+      const hasRobot = Object.values(robots).some(
+        robot => robot.pos[0] === gridX && robot.pos[1] === gridY
+      )
+      const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
+
+      if (!hasRobot && !isObstacle) {
+        // Place robot with temporary goal at same position
+        useGameStore.setState({ expectingNewRobot: true })
+        addRobot(gridX, gridY, gridX, gridY)
+        setRobotPlacementMode(false)
+        // The robot will be auto-selected when the state update arrives
+      }
+      return
+    }
+
+    // Handle goal placement after robot placement
+    if (placingRobotGoal && selectedRobot) {
+      const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
+      // Allow placing goal on any position except obstacles
+      if (!isObstacle) {
+        setGoal(selectedRobot, gridX, gridY)
+        setPlacingRobotGoal(false)
+        selectRobot(null)
+      }
+      return
+    }
 
     // Check if clicking on a robot
     const clickedRobot = Object.entries(robots).find(
@@ -193,7 +264,7 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
 
     // If robot is selected, set its goal
     if (selectedRobot) {
-      // Check if position is valid for goal (not on obstacle or other robot)
+      // Check if position is valid for goal (not on obstacle)
       const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
       if (!isObstacle) {
         setGoal(selectedRobot, gridX, gridY)
@@ -227,6 +298,28 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
   }
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const [gridX, gridY] = pixelToGrid(x, y, cellSize)
+
+    // Update ghost position for robot placement preview
+    if (robotPlacementMode && isValidGridPos(gridX, gridY, width, height)) {
+      const hasRobot = Object.values(robots).some(
+        robot => robot.pos[0] === gridX && robot.pos[1] === gridY
+      )
+      const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
+
+      if (!hasRobot && !isObstacle) {
+        setGhostPosition([gridX, gridY])
+      } else {
+        setGhostPosition(null)
+      }
+    }
+
     if (isDragging && obstacleMode === 'draw') {
       handleDrawMode(e)
     }
@@ -235,6 +328,14 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
   const handleMouseUp = () => {
     setIsDragging(false)
     setLastDragCell(null)
+  }
+
+  const handleMouseLeave = () => {
+    setIsDragging(false)
+    setLastDragCell(null)
+    if (robotPlacementMode) {
+      setGhostPosition(null)
+    }
   }
 
   const handleDrawMode = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -279,11 +380,12 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
       style={{
-        border: '2px solid #333',
-        cursor: selectedRobot ? 'crosshair' : 'pointer',
-        display: 'block'
+        border: '1px solid #2a2a35',
+        cursor: robotPlacementMode ? 'copy' : (selectedRobot || placingRobotGoal ? 'crosshair' : 'pointer'),
+        display: 'block',
+        backgroundColor: '#0f0f14'
       }}
     />
   )
