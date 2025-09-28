@@ -159,7 +159,7 @@ function App() {
         <span className={isConnected ? styles.connected : styles.disconnected}>
           {isConnected ? '● Connected' : '○ Disconnected'}
         </span>
-        <span>Multi-Robot D* Lite Pathfinding</span>
+        <span>Multi-Robot D* Lite Playground</span>
         <span className={styles.shortcuts}>
           Space: Pause/Play | O: Obstacle Mode | Esc: Deselect
         </span>
