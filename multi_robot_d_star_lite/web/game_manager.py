@@ -36,7 +36,7 @@ class GameManager:
                 "goal": list(self.coordinator.goals[robot_id]),
                 "path": self.coordinator.paths.get(robot_id, []),
                 "is_stuck": robot_id in self.coordinator.stuck_robots,
-                "is_paused": robot_id in self.coordinator.paused_robots
+                "is_paused": robot_id in self.coordinator.collision_blocked_robots
             }
 
         return {
@@ -48,7 +48,7 @@ class GameManager:
             "paused": self.paused,
             "collision_info": self._get_collision_info(),
             "stuck_robots": list(self.coordinator.stuck_robots),
-            "paused_robots": list(self.coordinator.paused_robots.keys())
+            "collision_blocked_robots": list(self.coordinator.collision_blocked_robots.keys())
         }
 
     def get_robot_positions_and_goals(self) -> Dict[str, Dict]:
@@ -79,23 +79,53 @@ class GameManager:
         return result
 
     def _get_collision_info(self) -> Optional[List[Dict]]:
-        """Get all collision information."""
-        if self.coordinator.collision_pairs:
-            # Return ALL collision pairs, not just the last one
-            collisions = []
-            for collision in self.coordinator.collision_pairs:
-                robot1, robot2, collision_type = collision
-                collisions.append({
-                    "type": collision_type,
-                    "robots": [robot1, robot2]
-                })
-            return collisions
-        return None
+        """Get collision information in frontend-compatible format."""
+        if not self.coordinator.collision_blocked_robots:
+            return None
+
+        # Group robots by collision type
+        collision_groups = {}
+        for robot_id, reason in self.coordinator.collision_blocked_robots.items():
+            collision_type = reason.replace("_collision", "")
+            if collision_type not in collision_groups:
+                collision_groups[collision_type] = []
+            collision_groups[collision_type].append(robot_id)
+
+        # Convert to frontend format: list of {type, robots} objects
+        collisions = []
+        for collision_type, robot_list in collision_groups.items():
+            # For path collisions (swap, same_cell, shear), these should always have pairs
+            if collision_type in ["swap", "same_cell", "shear"]:
+                # Only add if we have at least 2 robots (frontend expects pairs)
+                if len(robot_list) >= 2:
+                    # If odd number, split into pairs and handle remainder
+                    for i in range(0, len(robot_list), 2):
+                        if i + 1 < len(robot_list):
+                            collisions.append({
+                                "type": collision_type,
+                                "robots": [robot_list[i], robot_list[i + 1]]
+                            })
+                        elif len(robot_list) > 2:
+                            # If we have an odd robot after pairs, it might be a cascade
+                            # Log it as blocked_robot instead
+                            collisions.append({
+                                "type": "blocked_robot",
+                                "robots": [robot_list[i]]
+                            })
+            else:
+                # For blocked_robot collisions, each robot gets its own entry
+                for robot in robot_list:
+                    collisions.append({
+                        "type": collision_type,
+                        "robots": [robot]
+                    })
+
+        return collisions if collisions else None
 
     def step(self) -> Dict[str, Any]:
         """Advance simulation by one step."""
         if not self.paused:
-            should_continue, collision, stuck_robots, paused_robots = self.coordinator.step_simulation()
+            should_continue, collision, stuck_robots, collision_blocked_robots = self.coordinator.step_simulation()
             self.step_count += 1
         return self.get_state()
 

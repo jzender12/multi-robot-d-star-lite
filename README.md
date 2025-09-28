@@ -18,16 +18,10 @@ cd multi-robot-d-star-lite
 
 ## Run
 
-### Web Interface (default)
 ```bash
 ./run_dev.sh
 ```
 Opens at http://localhost:5173
-
-### Pygame Interface
-```bash
-./run_dev.sh pygame
-```
 
 ## Tests
 

@@ -121,11 +121,6 @@ if [ $# -eq 0 ]; then
 
     # Kill backend when frontend exits
     kill $BACKEND_PID 2>/dev/null || true
-elif [ "$1" = "pygame" ]; then
-    # Launch pygame version
-    print_msg "Launching Multi-Robot D* Lite Pygame Application..."
-    echo ""
-    python3 -m multi_robot_d_star_lite.pygame
 else
     print_msg "Executing: $@"
     echo ""

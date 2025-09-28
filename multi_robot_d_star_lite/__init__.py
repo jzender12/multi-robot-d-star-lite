@@ -7,8 +7,6 @@ with collision detection on a 2D grid.
 from .core.world import GridWorld, CellType
 from .core.path_planners.dstar_lite_planner import DStarLitePlanner
 from .core.coordinator import MultiAgentCoordinator
-from .pygame.visualizer import GridVisualizer
-from .pygame.simple_visualizer import SimpleVisualizer
 
 __version__ = "1.0.0"
 __author__ = "Your Name"
@@ -16,7 +14,5 @@ __all__ = [
     "GridWorld",
     "CellType",
     "DStarLitePlanner",
-    "MultiAgentCoordinator",
-    "GridVisualizer",
-    "SimpleVisualizer"
+    "MultiAgentCoordinator"
 ]

@@ -140,11 +140,11 @@ class TestGameManagerStuckDetection:
 
         # Check separate lists
         assert "stuck_robots" in state
-        assert "paused_robots" in state
+        assert "collision_blocked_robots" in state
 
         # stuck_id should only be in stuck list
         assert stuck_id in state["stuck_robots"]
-        assert stuck_id not in state["paused_robots"], "Should not be both stuck and paused"
+        assert stuck_id not in state["collision_blocked_robots"], "Should not be both stuck and collision-blocked"
 
     def test_stuck_persists_when_paused(self):
         """Stuck status should persist when simulation is paused."""

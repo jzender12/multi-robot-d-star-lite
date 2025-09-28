@@ -1,8 +1,8 @@
 # Multi-Robot D* Lite Path Planning System
 
-This is a complete multi-agent path planning system using D* Lite for a 10x10 grid with two robots. The implementation focuses on correctness and clarity. The system demonstrates D* Lite's incremental replanning capabilities with collision detection that pauses simulation when robots would collide.
+This is a complete multi-agent path planning system using D* Lite for a 10x10 grid with multiple robots. The implementation focuses on correctness and clarity. The system demonstrates D* Lite's incremental replanning capabilities with iterative collision detection that blocks all robots involved in collisions.
 
-**Important**: In this implementation, robots do NOT act as obstacles during path planning. This allows paths to potentially overlap, with collision detection catching conflicts at runtime and pausing the simulation for user intervention.
+**Important**: In this implementation, robots do NOT act as obstacles during path planning. This allows paths to potentially overlap, with collision detection catching conflicts at runtime and blocking affected robots until the collision is resolved.
 
 ## Understanding D* Lite
 
@@ -17,14 +17,15 @@ D* Lite maintains two distance values for each cell: the g-value (current best d
 
 ### Multi-Agent Coordination Strategy
 1. **Independent Planning**: Robots plan paths without considering other robots as obstacles
-2. **Partial Pausing System**: Only robots involved in collisions pause
+2. **Iterative Collision Detection**: Single-pass algorithm with cascading detection
    - **Same-Cell**: Both robots trying to enter the same cell
    - **Swap**: Robots exchanging positions
    - **Shear**: Robot entering cell that another is leaving perpendicularly
+   - **Blocked Robot**: Robot trying to move through a collision-blocked robot's position
 3. **Collision Resolution via Obstacles**: Placing obstacles during collisions can resolve deadlocks
-   - All robots (including paused) replan when obstacles change
-   - Collision pairs are re-evaluated with new paths
-   - Robots auto-resume if collision no longer exists
+   - All robots replan when obstacles change
+   - Collisions are recalculated with new paths
+   - Robots automatically unblock when collisions no longer exist
 4. **Stuck Robot Handling**: Robots unable to reach goals are visually indicated and logged
    - Simulation continues without pausing
    - Red border indicates stuck robots
@@ -47,13 +48,7 @@ multi-robot-d-star-lite/
 │   │       ├── __init__.py
 │   │       ├── base_planner.py       # Abstract base planner
 │   │       └── dstar_lite_planner.py # D* Lite algorithm (iteration limit: width*height*100)
-│   ├── pygame/                 # Pygame visualization (original interface)
-│   │   ├── __init__.py
-│   │   ├── __main__.py         # Entry point for pygame mode
-│   │   ├── visualizer.py       # Pygame visualization with three-panel layout
-│   │   ├── game_log.py         # Scrollable game log component with timestamps
-│   │   ├── ui_components.py    # Button and ControlPanel UI components
-│   │   └── simple_visualizer.py # ASCII visualization for debugging
+│   ├── [REMOVED] pygame/       # Pygame interface removed for simplification
 │   ├── web/                    # Web application (modern interface)
 │   │   ├── __init__.py
 │   │   ├── __main__.py         # Entry point for web server
@@ -75,28 +70,23 @@ multi-robot-d-star-lite/
 │   │   └── App.tsx            # Main application component
 │   ├── package.json           # Frontend dependencies
 │   └── vite.config.ts         # Vite configuration
-├── tests/                      # All test files (187+ tests passing)
+├── tests/                      # All test files (108 tests passing)
 │   ├── web/                    # Web application tests
 │   │   ├── test_game_manager.py      # GameManager tests
 │   │   ├── test_game_manager_stuck.py # Stuck robot detection in web
 │   │   └── test_websocket.py         # WebSocket endpoint tests
 │   ├── test_world.py           # Grid world functionality tests
-│   ├── test_collision.py       # Collision detection tests
+│   ├── test_iterative_collision_system.py  # Iterative collision detection tests
 │   ├── test_placement_validation.py  # Placement validation tests
 │   ├── test_robot_management.py      # Robot add/remove tests
 │   ├── test_world_resize.py          # Arena resizing tests
 │   ├── test_stuck_robot_detection.py # Stuck robot detection tests
-│   ├── test_pausing_behavior.py      # Pausing behavior tests
-│   ├── test_game_log.py              # Game log component tests
-│   ├── test_visualizer_with_log.py   # Visualizer integration tests
+│   ├── test_export.py                # Grid export functionality tests
 │   ├── test_color_generation.py      # Color generation tests
-│   ├── test_control_panel.py         # UI component tests
-│   ├── test_collision_state_management.py  # Pause state tests
-│   ├── test_mixed_robot_movement.py        # Mixed paused/moving scenarios
-│   ├── test_partial_pausing.py             # Core partial pausing tests
+│   ├── test_world.py                 # World management tests
 │   └── fixtures/
 │       └── test_cases.txt      # Visual test cases for all tests
-├── main.py                     # Legacy entry point (runs pygame version)
+├── [REMOVED] main.py           # Removed with pygame interface
 ├── run_dev.sh                  # Universal launcher with RAII-style venv management
 ├── run_tests.sh                # Test runner for all components
 ├── requirements.txt            # All dependencies (core + pygame + web + testing)
@@ -132,14 +122,16 @@ multi-robot-d-star-lite/
 ### Multi-Agent Coordinator (core/coordinator.py)
 Key methods:
 - `recompute_paths()`: Computes paths for all robots after changes
-- `detect_collision_at_next_step()`: Comprehensive collision detection that checks for:
-  1. **Same-cell collisions**: Both robots entering same position
-  2. **Swap collisions**: Robots exchanging positions
-  3. **Shear collisions**: Perpendicular crossing (one enters as another exits)
-  - Note: Robots moving in the same direction (series/convoy) are correctly allowed
+- `calculate_collisions()`: Iterative collision detection algorithm:
+  1. **Pass 1 - Path Collisions**: Detects same-cell, swap, and shear collisions between robot pairs
+  2. **Pass 2 - Blocked Robot Collisions**: Iteratively finds robots blocked by collision-blocked robots
+  - Continues iterating until no new collisions found (handles cascades elegantly)
+  - Returns dict mapping robot_id to collision reason (e.g., "swap_collision", "blocked_robot_collision")
+  - Note: Robots moving in same direction (series/convoy) are correctly allowed
 - `step_simulation()`: Moves robots, detects collisions, and identifies stuck robots
-  - Returns tuple: (should_continue, collision_info, stuck_robots)
-  - Stuck robots continue simulation without pausing
+  - Uses `calculate_collisions()` for comprehensive detection
+  - Returns tuple: (should_continue, collision_info, stuck_robots, collision_blocked_robots)
+  - Stuck robots continue simulation without blocking
 - `set_new_goal()`: Sets new goal with validation:
   - Returns `True` if successful, `False` if invalid
   - Prevents goals on obstacles
@@ -153,42 +145,8 @@ Key methods:
 
 ### Visualization
 
-#### Pygame Interface (pygame/visualizer.py & pygame/__main__.py)
-Interactive features:
-- **Three-Panel Layout**: Game log (left, 200px), Grid (center), Control panel (right, 200px)
-- **Start paused**: Shows initial setup for easier scenario building
-- **Dynamic goal setting**: While paused, click robot then click to set new goal
-- **Obstacle manipulation**: Click to add/remove obstacles with validation
-  - **Place Mode**: Click individual cells to toggle obstacles (default)
-  - **Draw Mode**: Click and drag to continuously place obstacles
-  - Toggle modes with 'O' key or control panel button
-- **Placement validation**: Prevents invalid placements:
-  - Cannot place obstacles on robots or goals
-  - Cannot place goals on obstacles or other robot goals
-- **Visual feedback**:
-  - Selected robots highlighted with yellow border
-  - Stuck robots indicated with red border
-  - Paths shown in robot-specific colors
-- **Coordinate transformation**: Mouse clicks adjusted for log panel offset (200px)
-
-#### Game Log (pygame/game_log.py)
-- **Scrollable log panel**: Displays simulation events with timestamps
-- **Message types**: info, warning, error, success, collision (each with unique colors)
-- **Auto-scrolling**: Automatically scrolls to latest messages
-- **Manual scrolling**: Mouse wheel support with auto-scroll disable
-- **Message limit**: Maintains last 100 messages for performance
-- **Word wrapping**: Long messages wrapped to fit panel width
-
-#### UI Components (pygame/ui_components.py)
-- **Button class**: Interactive buttons with hover/click states
-- **ControlPanel class**: Comprehensive control panel with:
-  - Add/Remove robot buttons
-  - Arena size presets (5x5, 10x10, 15x15, 20x20)
-  - Speed control
-  - Obstacle mode toggle (Place/Draw modes)
-  - Clear All / Reset buttons
-  - Robot count display
-- **ButtonGroup**: Manages exclusive button selection
+#### [REMOVED] Pygame Interface
+The pygame interface has been completely removed to simplify the codebase and focus on the web interface. All pygame-related components including the visualizer, game log panel, and UI components have been deleted.
 
 #### Web Interface (web/main.py & frontend/)
 - **FastAPI Backend**: WebSocket server for real-time communication
@@ -221,9 +179,9 @@ The project has been restructured into a unified Python package that supports bo
 
 ### Package Organization
 - `core/`: Contains all pathfinding logic, world management, and coordination
-- `pygame/`: Original pygame visualization with local UI
 - `web/`: Modern web interface with React frontend and FastAPI backend
-- `utils/`: Shared utilities used by both interfaces
+- `utils/`: Shared utilities
+- **Removed**: `pygame/` directory and all pygame-related code
 
 ## Recent Features (Added via TDD)
 
@@ -255,6 +213,51 @@ The project has been restructured into a unified Python package that supports bo
   - Maintains all placement validation (no obstacles on robots/goals)
   - Visual mode indicator in control panel
 
+### Iterative Collision System Overhaul
+- **Problem**: Pair-based collision system was complex and couldn't handle cascades properly
+- **Solution**: Iterative detection algorithm that finds all collisions systematically
+- **Implementation**:
+  - **Pass 1**: Detects path-to-path collisions (same_cell, swap, shear) between all robot pairs
+  - **Pass 2**: Iteratively detects blocked robot collisions (cascade detection)
+    - Each iteration finds robots trying to move through blocked robots
+    - Continues until no new collisions found (convergence)
+    - Maximum 100 iterations to prevent infinite loops
+  - No collision pairs tracking - simpler state management
+  - All robots involved in collisions blocked simultaneously (fairness)
+  - Renamed all "paused_robots" references to "collision_blocked_robots" for clarity
+- **Testing**:
+  - Created `test_iterative_collision_system.py` with 8 comprehensive tests
+  - Test coverage: basic collisions, cascade chains (5+ robots), multiple simultaneous collisions, recovery scenarios
+  - Deleted 5 obsolete test files based on old pair system
+- **Benefits**:
+  - Handles cascade collisions elegantly through iteration
+  - Cleaner code - removed ~200 lines of pair management
+  - More predictable behavior - no arbitrary priorities
+  - Simpler recovery logic - just recalculate collisions each step
+
+### Pygame Interface Removal
+- **Problem**: Maintaining two interfaces (pygame and web) created complexity
+- **Solution**: Complete removal of pygame interface
+- **Changes**:
+  - Deleted entire `multi_robot_d_star_lite/pygame/` directory
+  - Removed `main.py` (pygame entry point)
+  - Deleted pygame-specific tests
+  - Updated package imports and documentation
+- **Result**: Cleaner codebase focused on web interface
+
+### Frontend-Backend Collision Format Fix
+- **Problem 1**: Frontend crashed (white screen) when collisions occurred
+  - Backend sent: `{"robot1": "swap", "robot2": "swap"}`
+  - Frontend expected: `[{type: "swap", robots: ["robot1", "robot2"]}]`
+- **Problem 2**: "undefined" robot in collision messages after goal changes
+  - Single robots could end up alone in collision type groups
+  - Frontend assumed all collisions involve 2+ robots
+- **Solution**:
+  - Updated `_get_collision_info()` in `game_manager.py` to format properly
+  - Added pairing logic for path collisions (swap, same_cell, shear)
+  - Frontend gracefully handles both paired and single-robot collisions
+- **Result**: Stable web interface with proper collision display and no crashes
+
 ## Installation and Setup
 
 ```bash
@@ -280,13 +283,10 @@ cd multi-robot-d-star-lite
 # Opens: Backend at http://localhost:8000, Frontend at http://localhost:5173
 ```
 
-### Pygame Interface (Original)
+### [REMOVED] Pygame Interface
 ```bash
-# Launch pygame visualization
-./run_dev.sh pygame
-
-# Alternative: Direct Python execution
-./run_dev.sh python3 main.py
+# Pygame interface has been removed for simplification
+# Use the web interface instead: ./run_dev.sh
 ```
 
 ### Custom Commands
@@ -328,23 +328,8 @@ cd multi-robot-d-star-lite
   - Adjust simulation speed
   - Arena size presets
 
-### Pygame Interface Controls
-
-- **SPACE**: Pause/Resume simulation
-- **O**: Toggle obstacle mode (Place/Draw)
-- **While paused**:
-  - Click robot to select (yellow highlight)
-  - Click empty cell to set new goal
-  - Click to add/remove obstacles (or drag in Draw mode)
-  - **C**: Copy current grid state to clipboard
-- **While running**:
-  - Click: Add/remove obstacles (or drag in Draw mode)
-- **Q**: Quit
-
-**Validation**: The system prevents invalid placements:
-- Cannot place obstacles on robots or goals
-- Cannot place goals on obstacles
-- Cannot have two robots with the same goal
+### [REMOVED] Pygame Interface Controls
+The pygame interface has been removed. Please use the web interface controls instead.
 
 ## Using run_dev.sh
 
@@ -376,8 +361,8 @@ The script automatically:
 
 ### Script Modes:
 - **No arguments**: Launches web application (backend + frontend)
-- **`pygame` argument**: Launches pygame visualization
 - **Any other command**: Executes in virtual environment
+- **Note**: Pygame mode has been removed
 
 ## Visual Test Format
 
@@ -405,18 +390,19 @@ During simulation, press 'C' when paused to copy the current grid state to clipb
 
 1. **Initial State**: Clean 10x10 grid with robot0 at (0,0), goal at (9,9)
 2. **Path Planning**: Each robot runs D* Lite independently WITHOUT considering other robots
-3. **Collision Detection**: System checks for three types of collisions BEFORE movement:
+3. **Collision Detection**: Iterative system checks for collisions BEFORE movement:
    - Same-cell: Both robots trying to enter same position
    - Swap: Robots exchanging positions
    - Shear: Perpendicular crossing where one robot enters a cell another is leaving
-4. **Partial Pausing**: Only robots involved in collision pause (orange border)
-   - Other robots continue moving normally
-   - Paused robots keep their paths visible
-   - Collision pairs are tracked for auto-recovery
+   - Blocked Robot: Robot trying to move through a collision-blocked robot's position
+4. **Collision Blocking**: All robots involved in collisions are blocked (orange border)
+   - Non-colliding robots continue moving normally
+   - Blocked robots keep their paths visible
+   - Cascading collisions handled through iteration
 5. **Collision Resolution via Obstacles**:
-   - Placing obstacles triggers replanning for ALL robots (including paused)
-   - Collision pairs are re-evaluated with new paths
-   - Robots auto-resume if collision no longer exists
+   - Placing obstacles triggers replanning for ALL robots
+   - Collisions are recalculated with new paths
+   - Robots automatically unblock if no longer in collision
 6. **Placement Validation**: Prevents invalid configurations:
    - Goals cannot be placed on obstacles
    - Multiple robots cannot have the same goal or position
@@ -453,9 +439,8 @@ With the unified package architecture, imports are organized by module:
 from multi_robot_d_star_lite.core import GridWorld, MultiAgentCoordinator
 from multi_robot_d_star_lite.core.path_planners import DStarLitePlanner
 
-# Pygame interface components
-from multi_robot_d_star_lite.pygame import GridVisualizer, GameLog
-from multi_robot_d_star_lite.pygame.ui_components import Button, ControlPanel
+# Pygame interface components - REMOVED
+# The pygame interface has been completely removed
 
 # Web interface components
 from multi_robot_d_star_lite.web import GameManager
@@ -469,26 +454,24 @@ from multi_robot_d_star_lite.utils.export_grid import export_to_visual_format
 ## Test-Driven Development
 
 This project follows TDD principles with comprehensive test coverage:
-- **187+ passing tests** across all components
+- **108 passing tests** across all components (streamlined after pygame removal)
 - Test files for each major component
 - Visual test format for complex scenarios
 - Tests written BEFORE implementation
 
 ### Test Coverage:
-- Core functionality: 150+ tests
+- Core functionality:
   - Robot management: 13 tests - duplicate prevention, add/remove
   - World resizing: 17 tests - clean slate behavior
   - Placement validation: 11 tests - goal/obstacle validation
   - Stuck robot detection: 11 tests - detection, recovery, simulation continuity
-  - Collision detection: Comprehensive collision scenarios
-- Pygame interface: 30+ tests
-  - Game log: 17 tests - scrolling, timestamps, message handling
-  - Visualizer integration: Tests for three-panel layout and coordinate transformation
-  - UI components: Mock tests for control panel
-- Web interface: 20+ tests
-  - WebSocket communication tests
-  - Game manager state tests
-  - API endpoint tests
+  - Iterative collision detection: 8 tests - all collision types and cascades
+  - Color generation: 15 tests - dynamic colors for unlimited robots
+- Web interface:
+  - WebSocket communication: 9 tests
+  - Game manager: 9 tests including collision handling
+  - Stuck robot detection in web: 10 tests
+- All obsolete pygame and pair-based collision tests removed
 
 ### Recent Test Fixes:
 - `test_no_duplicate_start_positions`: Now correctly expects False return
@@ -512,11 +495,12 @@ For production systems:
 This implementation demonstrates that multi-agent pathfinding doesn't require complex frameworks. By leveraging D* Lite's natural obstacle avoidance and adding simple temporal collision resolution, we achieve robust multi-robot coordination. The unified package architecture allows us to provide both traditional pygame visualization and modern web interfaces while sharing the same core pathfinding logic.
 
 ### Key Achievements:
-- **Unified Architecture**: Single package supports multiple interfaces
-- **Code Reuse**: Core logic shared between pygame and web versions
+- **Simplified Architecture**: Focused on web interface after pygame removal
+- **Iterative Collision System**: Elegant handling of complex collision cascades
 - **Modern Stack**: React + TypeScript frontend with FastAPI backend
-- **Comprehensive Testing**: 187+ tests ensure reliability
+- **Comprehensive Testing**: 108 tests ensure reliability
 - **Developer Experience**: Simple `run_dev.sh` handles all complexity
+- **Frontend Stability**: Fixed crash issues and proper collision display
 
 The key insight is understanding that robots are just dynamic obstacles, and D* Lite already knows how to handle obstacles efficiently. The modular architecture ensures that future interfaces can easily be added without duplicating core logic.
 

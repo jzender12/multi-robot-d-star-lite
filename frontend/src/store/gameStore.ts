@@ -151,10 +151,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
         // Only log if this is a new collision
         if (!currentActiveCollisions.has(collisionKey)) {
-          get().addLog(
-            `Collision: ${type} between ${robots[0]} and ${robots[1]}`,
-            'collision'
-          )
+          // Format message based on number of robots
+          const message = robots.length >= 2
+            ? `Collision: ${type} between ${robots[0]} and ${robots[1]}`
+            : `Collision: ${type} - ${robots[0]}`
+
+          get().addLog(message, 'collision')
         }
       }
     }
