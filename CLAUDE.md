@@ -258,6 +258,59 @@ The project has been restructured into a unified Python package that supports bo
   - Frontend gracefully handles both paired and single-robot collisions
 - **Result**: Stable web interface with proper collision display and no crashes
 
+### CSS Module Architecture Implementation
+- **Problem**: Style conflicts between global CSS and inline styles
+  - Global button hover effects in `index.css` were overridden by inline styles
+  - Inconsistent hover effects across different buttons
+  - Difficult to maintain styles scattered across components
+- **Solution**: Implemented CSS modules for component-scoped styles
+  - Created `ControlPanel.module.css` for control panel buttons and layout
+  - Created `GameLog.module.css` for log panel and button styles
+  - Created `Grid2D.module.css` for canvas cursor styles
+  - Migrated all inline styles to CSS classes
+  - Consistent purple hover effect (#7c3aed border) across all buttons
+- **Visual Improvements**:
+  - Goal numbers changed to black (#0a0a0f) for better contrast
+  - Goal square size increased to `cellSize / 2` for better visibility
+  - Fixed keyboard shortcuts in header to show actual keys (1/2/3 for modes)
+- **Benefits**:
+  - No more style conflicts
+  - Easier to maintain and update styles
+  - Consistent user experience
+  - All 129 tests still passing
+
+### UI Layout and UX Improvements
+- **Problem**: Title and layout issues
+  - Title "Multi-Robot D* Lite Playground" was too long and technical
+  - Title appeared offset due to full-width status bar with side panels
+  - Keyboard shortcuts in header were hard to discover
+  - Place Robot button could be clicked in wrong cursor mode
+- **Solution**: Comprehensive UI improvements
+  - **Title Changes**:
+    - Simplified to "Multi-Robot Playground" for clarity
+    - Centered over grid using 3-section status bar layout
+    - Left section (280px): Connection status
+    - Center section (flex): Title perfectly centered over grid
+    - Right section (280px): Empty for balance
+  - **Keyboard Shortcuts**:
+    - Moved from header to Control Panel for better discoverability
+    - Added styled shortcuts section with visual key indicators
+    - Purple-highlighted keys with clear action descriptions
+  - **Robot Placement UX**:
+    - Place Robot button now auto-switches to Select mode
+    - Prevents confusion about placement not working
+    - Ensures correct mode for robot interaction
+- **Implementation Details**:
+  - Status bar uses flexbox with fixed side widths matching panel widths
+  - Shortcuts styled with `.key` and `.action` classes
+  - Responsive design maintained with media queries
+- **Benefits**:
+  - Cleaner, more professional appearance
+  - Title visually centered over main content
+  - Better UX for robot placement workflow
+  - Shortcuts more discoverable in control panel
+  - All tests passing
+
 ## Installation and Setup
 
 ```bash
@@ -511,3 +564,4 @@ The key insight is understanding that robots are just dynamic obstacles, and D* 
 - Keep core logic in `core/` module, UI-specific code in respective modules
 - Update both CLAUDE.md (internal) and README.md (public) when adding features
 - Ensure all tests pass before committing changes
+- last task of any plan is to run @run_tests.sh and make sure all pass, and to update @CLAUDE.md with implementation details

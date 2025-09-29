@@ -1,0 +1,153 @@
+.panel {
+  width: 100%;
+  padding: 10px;
+  background-color: #0f0f14;
+  border-left: 1px solid #1a1a1f;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.title {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: normal;
+  text-align: center;
+  color: #e4e4e7;
+}
+
+.section {
+  margin-bottom: 15px;
+}
+
+.label {
+  margin-bottom: 5px;
+  font-size: 13px;
+  font-weight: normal;
+  color: #9ca3af;
+}
+
+.button {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 5px;
+  background-color: #1a1a1f;
+  border: 1px solid #2a2a35;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #e4e4e7;
+  transition: all 0.15s;
+}
+
+.button:hover:not(:disabled) {
+  background-color: #222228;
+  border-color: #7c3aed;
+}
+
+.button:active:not(:disabled) {
+  background-color: #1a1a1f;
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.smallButton {
+  flex: 1;
+  padding: 8px;
+  margin-right: 5px;
+  background-color: #1a1a1f;
+  border: 1px solid #2a2a35;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #e4e4e7;
+  transition: all 0.15s;
+}
+
+.smallButton:last-child {
+  margin-right: 0;
+}
+
+.smallButton:hover:not(:disabled) {
+  background-color: #222228;
+  border-color: #7c3aed;
+}
+
+.smallButton:active:not(:disabled) {
+  background-color: #1a1a1f;
+}
+
+.smallButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 5px;
+}
+
+.playButton {
+  background-color: #10b981 !important;
+  color: #0a0a0f !important;
+  font-weight: normal;
+  font-size: 14px;
+  border-color: #10b981 !important;
+}
+
+.playButton:hover:not(:disabled) {
+  background-color: #0ea968 !important;
+  border-color: #10b981 !important;
+}
+
+.pauseButton {
+  background-color: #6b7280 !important;
+  color: #e4e4e7 !important;
+  font-weight: normal;
+  font-size: 14px;
+  border-color: #6b7280 !important;
+}
+
+.pauseButton:hover:not(:disabled) {
+  background-color: #5a5d6a !important;
+  border-color: #7c3aed !important;
+}
+
+.activeButton {
+  background-color: #1a1a1f;
+  border-color: #4a4a5f;
+}
+
+.shortcutsList {
+  background-color: #1a1a1f;
+  border: 1px solid #2a2a35;
+  border-radius: 3px;
+  padding: 8px;
+  font-size: 11px;
+}
+
+.shortcut {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  color: #9ca3af;
+}
+
+.key {
+  font-weight: 600;
+  color: #7c3aed;
+  background-color: #0f0f14;
+  padding: 2px 6px;
+  border-radius: 2px;
+  border: 1px solid #2a2a35;
+  font-size: 10px;
+  min-width: 40px;
+  text-align: center;
+}
+
+.action {
+  color: #9ca3af;
+  font-size: 11px;
+}

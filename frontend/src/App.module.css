@@ -9,14 +9,34 @@
 
 .statusBar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   height: 40px;
-  padding: 0 20px;
   background-color: #0f0f14;
   color: #e4e4e7;
   font-size: 13px;
   border-bottom: 1px solid #1a1a1f;
+}
+
+.statusLeft {
+  width: 280px;
+  padding-left: 20px;
+}
+
+.statusCenter {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.statusRight {
+  width: 280px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 500;
+  color: #e4e4e7;
 }
 
 .connected {
@@ -27,11 +47,6 @@
 .disconnected {
   color: #6b7280;
   font-weight: normal;
-}
-
-.shortcuts {
-  color: #6b7280;
-  font-size: 11px;
 }
 
 .mainLayout {
@@ -73,8 +88,9 @@
     width: 150px;
   }
 
-  .shortcuts {
-    display: none;
+  .statusLeft,
+  .statusRight {
+    width: 150px;
   }
 }
 

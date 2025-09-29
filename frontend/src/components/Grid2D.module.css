@@ -1,0 +1,21 @@
+.canvas {
+  border: 1px solid #2a2a35;
+  display: block;
+  background-color: #0f0f14;
+}
+
+.canvasPointer {
+  cursor: pointer;
+}
+
+.canvasCrosshair {
+  cursor: crosshair;
+}
+
+.canvasGrab {
+  cursor: grab;
+}
+
+.canvasCopy {
+  cursor: copy;
+}

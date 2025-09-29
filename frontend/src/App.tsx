@@ -141,7 +141,8 @@ function App() {
   }
 
   const handlePlaceRobot = () => {
-    // Enable robot placement mode
+    // Enable robot placement mode and switch to select mode
+    setCursorMode('select')
     setRobotPlacementMode(true)
     addLog('Click on the grid to place a robot', 'info')
   }
@@ -162,13 +163,15 @@ function App() {
     <div className={styles.app}>
       {/* Connection status bar */}
       <div className={styles.statusBar}>
-        <span className={isConnected ? styles.connected : styles.disconnected}>
-          {isConnected ? '● Connected' : '○ Disconnected'}
-        </span>
-        <span>Multi-Robot D* Lite Playground</span>
-        <span className={styles.shortcuts}>
-          Space: Pause/Play | O: Obstacle Mode | Esc: Deselect
-        </span>
+        <div className={styles.statusLeft}>
+          <span className={isConnected ? styles.connected : styles.disconnected}>
+            {isConnected ? '● Connected' : '○ Disconnected'}
+          </span>
+        </div>
+        <div className={styles.statusCenter}>
+          <span className={styles.title}>Multi-Robot Playground</span>
+        </div>
+        <div className={styles.statusRight}></div>
       </div>
 
       {/* Main layout */}

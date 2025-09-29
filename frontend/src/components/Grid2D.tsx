@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react'
 import { useGameStore } from '../store/gameStore'
 import { getRobotColors } from '../utils/colors'
 import { gridToPixel, pixelToGrid, isValidGridPos } from '../utils/coordinates'
+import styles from './Grid2D.module.css'
 
 interface Grid2DProps {
   cellSize?: number
@@ -102,11 +103,11 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
 
       // Draw goal marker (square)
       ctx.fillStyle = colors.goal
-      const goalSize = cellSize / 3 * 1.2  // 20% bigger
+      const goalSize = cellSize / 2
       ctx.fillRect(goalX - goalSize / 2, goalY - goalSize / 2, goalSize, goalSize)
 
       // Draw goal label
-      ctx.fillStyle = '#e4e4e7'
+      ctx.fillStyle = '#0a0a0f'
       ctx.font = '12px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
@@ -341,19 +342,19 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
     }
   }
 
-  const getCursorStyle = () => {
-    if (robotPlacementMode) return 'copy'
-    if (placingRobotGoal) return 'crosshair'
+  const getCursorClassName = () => {
+    if (robotPlacementMode) return styles.canvasCopy
+    if (placingRobotGoal) return styles.canvasCrosshair
 
     switch (cursorMode) {
       case 'select':
-        return selectedRobot ? 'crosshair' : 'pointer'
+        return selectedRobot ? styles.canvasCrosshair : styles.canvasPointer
       case 'draw':
-        return 'crosshair'
+        return styles.canvasCrosshair
       case 'erase':
-        return 'grab'
+        return styles.canvasGrab
       default:
-        return 'pointer'
+        return styles.canvasPointer
     }
   }
 
@@ -403,12 +404,7 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
-      style={{
-        border: '1px solid #2a2a35',
-        cursor: getCursorStyle(),
-        display: 'block',
-        backgroundColor: '#0f0f14'
-      }}
+      className={`${styles.canvas} ${getCursorClassName()}`}
     />
   )
 }

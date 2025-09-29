@@ -27,28 +27,10 @@ body {
   background: linear-gradient(to bottom, #0a0a0f, #0f0f14);
 }
 
-/* Button reset */
+/* Button reset - minimal global styles */
 button {
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.15s ease;
-  background-color: #1a1a1f;
-  color: #e4e4e7;
-  border: 1px solid #2a2a35;
-}
-
-button:hover:not(:disabled) {
-  background-color: #222228;
-  border-color: #7c3aed;
-}
-
-button:active:not(:disabled) {
-  background-color: #1a1a1f;
-}
-
-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 /* Scrollbar styling */

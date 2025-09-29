@@ -1,4 +1,5 @@
 import React from 'react'
+import styles from './ControlPanel.module.css'
 
 interface ControlPanelProps {
   robotCount: number
@@ -44,28 +45,28 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   }
 
   return (
-    <div style={styles.panel}>
-      <h3 style={styles.title}>Controls</h3>
+    <div className={styles.panel}>
+      <h3 className={styles.title}>Controls</h3>
 
       {/* Robot Management */}
-      <div style={styles.section}>
-        <div style={styles.label}>Robots: {robotCount}</div>
+      <div className={styles.section}>
+        <div className={styles.label}>Robots: {robotCount}</div>
         <button
-          style={styles.button}
+          className={styles.button}
           onClick={onAddRobot}
           disabled={robotCount >= 10}
         >
           Add Random Robot
         </button>
         <button
-          style={styles.button}
+          className={styles.button}
           onClick={onPlaceRobot}
           disabled={robotCount >= 10}
         >
           Place Robot
         </button>
         <button
-          style={styles.button}
+          className={styles.button}
           onClick={onRemoveRobot}
           disabled={!selectedRobot}
         >
@@ -74,23 +75,23 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       {/* Arena Size */}
-      <div style={styles.section}>
-        <div style={styles.label}>Arena Size</div>
-        <div style={styles.buttonRow}>
+      <div className={styles.section}>
+        <div className={styles.label}>Arena Size</div>
+        <div className={styles.buttonRow}>
           <button
-            style={styles.smallButton}
+            className={styles.smallButton}
             onClick={() => onResizeArena(10)}
           >
             10x10
           </button>
           <button
-            style={styles.smallButton}
+            className={styles.smallButton}
             onClick={() => onResizeArena(15)}
           >
             15x15
           </button>
           <button
-            style={styles.smallButton}
+            className={styles.smallButton}
             onClick={() => onResizeArena(20)}
           >
             20x20
@@ -99,18 +100,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       {/* Simulation Speed */}
-      <div style={styles.section}>
-        <div style={styles.label}>Speed: {simulationSpeed} steps/s</div>
-        <div style={styles.buttonRow}>
+      <div className={styles.section}>
+        <div className={styles.label}>Speed: {simulationSpeed} steps/s</div>
+        <div className={styles.buttonRow}>
           <button
-            style={styles.smallButton}
+            className={styles.smallButton}
             onClick={handleSpeedDecrease}
             disabled={simulationSpeed <= 1}
           >
             Speed -
           </button>
           <button
-            style={styles.smallButton}
+            className={styles.smallButton}
             onClick={handleSpeedIncrease}
             disabled={simulationSpeed >= 10}
           >
@@ -120,14 +121,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       {/* Cursor Modes */}
-      <div style={styles.section}>
-        <div style={styles.label}>Cursor Mode</div>
-        <div style={styles.buttonRow}>
+      <div className={styles.section}>
+        <div className={styles.label}>Cursor Mode</div>
+        <div className={styles.buttonRow}>
           <button
-            style={{
-              ...styles.smallButton,
-              ...(cursorMode === 'select' ? styles.activeButton : {})
-            }}
+            className={`${styles.smallButton} ${cursorMode === 'select' ? styles.activeButton : ''}`}
             onClick={() => onSetCursorMode('select')}
             disabled={cursorMode === 'select'}
             title="Select Mode (1)"
@@ -135,10 +133,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             ↯ Select
           </button>
           <button
-            style={{
-              ...styles.smallButton,
-              ...(cursorMode === 'draw' ? styles.activeButton : {})
-            }}
+            className={`${styles.smallButton} ${cursorMode === 'draw' ? styles.activeButton : ''}`}
             onClick={() => onSetCursorMode('draw')}
             disabled={cursorMode === 'draw'}
             title="Draw Mode (2)"
@@ -146,10 +141,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             ▣ Draw
           </button>
           <button
-            style={{
-              ...styles.smallButton,
-              ...(cursorMode === 'erase' ? styles.activeButton : {})
-            }}
+            className={`${styles.smallButton} ${cursorMode === 'erase' ? styles.activeButton : ''}`}
             onClick={() => onSetCursorMode('erase')}
             disabled={cursorMode === 'erase'}
             title="Erase Mode (3)"
@@ -160,12 +152,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       {/* Simulation Control */}
-      <div style={styles.section}>
+      <div className={styles.section}>
         <button
-          style={{
-            ...styles.button,
-            ...(isPaused ? styles.playButton : styles.pauseButton)
-          }}
+          className={`${styles.button} ${isPaused ? styles.playButton : styles.pauseButton}`}
           onClick={onTogglePause}
         >
           {isPaused ? '▶ Resume' : '❚❚ Pause'}
@@ -173,87 +162,41 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       {/* Clear Control */}
-      <div style={styles.section}>
+      <div className={styles.section}>
         <button
-          style={styles.button}
+          className={styles.button}
           onClick={onClearBoard}
         >
           Clear Board
         </button>
       </div>
+
+      {/* Keyboard Shortcuts */}
+      <div className={styles.section}>
+        <div className={styles.label}>Keyboard Shortcuts</div>
+        <div className={styles.shortcutsList}>
+          <div className={styles.shortcut}>
+            <span className={styles.key}>Space</span>
+            <span className={styles.action}>Pause/Play</span>
+          </div>
+          <div className={styles.shortcut}>
+            <span className={styles.key}>1</span>
+            <span className={styles.action}>Select Mode</span>
+          </div>
+          <div className={styles.shortcut}>
+            <span className={styles.key}>2</span>
+            <span className={styles.action}>Draw Mode</span>
+          </div>
+          <div className={styles.shortcut}>
+            <span className={styles.key}>3</span>
+            <span className={styles.action}>Erase Mode</span>
+          </div>
+          <div className={styles.shortcut}>
+            <span className={styles.key}>Esc</span>
+            <span className={styles.action}>Deselect</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
-}
-
-const styles = {
-  panel: {
-    width: '100%',
-    padding: '10px',
-    backgroundColor: '#0f0f14',
-    borderLeft: '1px solid #1a1a1f',
-    height: '100%',
-    overflowY: 'auto' as const
-  },
-  title: {
-    margin: '0 0 15px 0',
-    fontSize: '16px',
-    fontWeight: 'normal' as const,
-    textAlign: 'center' as const,
-    color: '#e4e4e7'
-  },
-  section: {
-    marginBottom: '15px'
-  },
-  label: {
-    marginBottom: '5px',
-    fontSize: '13px',
-    fontWeight: 'normal' as const,
-    color: '#9ca3af'
-  },
-  button: {
-    width: '100%',
-    padding: '8px',
-    marginBottom: '5px',
-    backgroundColor: '#1a1a1f',
-    border: '1px solid #2a2a35',
-    borderRadius: '3px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    color: '#e4e4e7',
-    transition: 'all 0.15s'
-  },
-  smallButton: {
-    flex: 1,
-    padding: '8px',
-    marginRight: '5px',
-    backgroundColor: '#1a1a1f',
-    border: '1px solid #2a2a35',
-    borderRadius: '3px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    color: '#e4e4e7',
-    transition: 'all 0.15s'
-  },
-  buttonRow: {
-    display: 'flex',
-    gap: '5px'
-  },
-  playButton: {
-    backgroundColor: '#10b981',
-    color: '#0a0a0f',
-    fontWeight: 'normal' as const,
-    fontSize: '14px',
-    borderColor: '#10b981'
-  },
-  pauseButton: {
-    backgroundColor: '#6b7280',
-    color: '#e4e4e7',
-    fontWeight: 'normal' as const,
-    fontSize: '14px',
-    borderColor: '#6b7280'
-  },
-  activeButton: {
-    backgroundColor: '#1a1a1f',
-    borderColor: '#4a4a5f'
-  }
 }
