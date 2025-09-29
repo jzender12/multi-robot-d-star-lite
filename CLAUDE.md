@@ -335,6 +335,33 @@ The project has been restructured into a unified Python package that supports bo
   - Clean shutdown messages displayed
   - Improved developer experience
 
+### Robust Replanning for Path Extraction Failures
+- **Problem**: Path extraction could fail even after successful `compute_shortest_path()`
+  - Previously only retried for "no_path_exists" failures
+  - No retry for "max_iterations_exceeded" or "inconsistent_state" failures
+  - Path extraction failures (get_path() returning empty/None) weren't handled
+- **Solution**: Enhanced `recompute_paths()` method with comprehensive replanning
+  - **Complete Replan for All Failure Types**:
+    - Attempts complete replan for ANY compute failure (not just "no_path_exists")
+    - Covers "max_iterations_exceeded", "inconsistent_state", and "no_path_exists"
+  - **Path Extraction Failure Handling**:
+    - If `get_path()` returns empty/None after successful compute, tries complete replan
+    - Reinitializes planner from scratch to escape local minima
+  - **Improved Logging**:
+    - Clear messages about what triggered the replan
+    - Success/failure status of replan attempts
+    - Specific failure reasons included in logs
+- **Implementation** (multi_robot_playground/core/coordinator.py:354-395):
+  - First attempts standard `compute_shortest_path()`
+  - If fails, reinitializes planner and retries regardless of failure type
+  - If compute succeeds but path extraction fails, reinitializes and retries
+  - Provides fallback to empty path if all attempts fail
+- **Benefits**:
+  - More robust handling of edge cases in pathfinding
+  - Better recovery from inconsistent states
+  - Clearer debugging through improved logging
+  - All 129 tests still passing
+
 ## Installation and Setup
 
 ```bash

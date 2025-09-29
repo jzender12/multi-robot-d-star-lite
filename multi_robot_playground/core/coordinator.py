@@ -354,9 +354,9 @@ class MultiAgentCoordinator:
             # Recompute path
             success, reason = planner.compute_shortest_path()
 
-            # If no_path_exists, try a complete replan from scratch to escape local minima
-            if not success and reason == "no_path_exists (goal unreachable)":
-                print(f"Robot {robot_id}: no path found, attempting complete replan...")
+            # Try complete replan for any failure type (not just no_path_exists)
+            if not success:
+                print(f"Robot {robot_id}: Path computation failed ({reason}), attempting complete replan...")
                 # Reinitialize the planner completely
                 current_pos = self.current_positions[robot_id]
                 goal = self.goals[robot_id]
@@ -364,7 +364,7 @@ class MultiAgentCoordinator:
                 # Try again with fresh state
                 success, reason = planner.compute_shortest_path()
                 if success:
-                    print(f"Robot {robot_id}: Complete replan successful!")
+                    print(f"Robot {robot_id}: Complete replan successful after {reason} failure!")
                 else:
                     print(f"Robot {robot_id}: Complete replan also failed - {reason}")
 
@@ -373,8 +373,23 @@ class MultiAgentCoordinator:
                 if new_path:
                     self.paths[robot_id] = new_path
                 else:
-                    print(f"Warning: Failed to extract path for robot {robot_id}")
-                    self.paths[robot_id] = []
+                    # Path extraction failed despite successful compute - try complete replan
+                    print(f"Warning: Failed to extract path for robot {robot_id}, attempting complete replan...")
+                    current_pos = self.current_positions[robot_id]
+                    goal = self.goals[robot_id]
+                    planner.initialize(current_pos, goal)
+                    success, reason = planner.compute_shortest_path()
+                    if success:
+                        new_path = planner.get_path()
+                        if new_path:
+                            print(f"Robot {robot_id}: Path extraction successful after replan!")
+                            self.paths[robot_id] = new_path
+                        else:
+                            print(f"Warning: Path extraction still failed for robot {robot_id} after replan")
+                            self.paths[robot_id] = []
+                    else:
+                        print(f"Warning: Replan failed for robot {robot_id} - {reason}")
+                        self.paths[robot_id] = []
             else:
                 print(f"Warning: No path found for robot {robot_id} - Reason: {reason}")
                 self.paths[robot_id] = []
