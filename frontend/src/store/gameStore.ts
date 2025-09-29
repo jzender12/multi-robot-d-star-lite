@@ -35,7 +35,7 @@ interface GameStore {
 
   // UI state
   selectedRobot: string | null
-  obstacleMode: 'place' | 'draw'
+  cursorMode: 'select' | 'draw' | 'erase'  // Current cursor mode
   robotPlacementMode: boolean  // True when placing a robot manually
   placingRobotGoal: boolean    // True when placing goal after robot
   ghostPosition: [number, number] | null  // Preview position for robot placement
@@ -55,7 +55,7 @@ interface GameStore {
   disconnect: () => void
   updateGameState: (state: any) => void
   selectRobot: (robotId: string | null) => void
-  toggleObstacleMode: () => void
+  setCursorMode: (mode: 'select' | 'draw' | 'erase') => void
   setSimulationSpeed: (speed: number) => void
   pauseSimulation: () => void
   resumeSimulation: () => void
@@ -87,7 +87,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   activeCollisions: new Set(),
 
   selectedRobot: null,
-  obstacleMode: 'place',
+  cursorMode: 'select',  // Default to select mode
   robotPlacementMode: false,
   placingRobotGoal: false,
   ghostPosition: null,
@@ -239,10 +239,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ selectedRobot: robotId })
   },
 
-  toggleObstacleMode: () => {
-    set((state) => ({
-      obstacleMode: state.obstacleMode === 'place' ? 'draw' : 'place'
-    }))
+  setCursorMode: (mode) => {
+    set({ cursorMode: mode })
   },
 
   setSimulationSpeed: (speed: number) => {

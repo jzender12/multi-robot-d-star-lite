@@ -12,7 +12,7 @@ function App() {
     robots,
     obstacles,
     paused,
-    obstacleMode,
+    cursorMode,
     simulationSpeed,
     logs,
     isConnected,
@@ -28,7 +28,7 @@ function App() {
     addRobot,
     removeRobot,
     resizeArena,
-    toggleObstacleMode,
+    setCursorMode,
     setSimulationSpeed,
     clearLogs,
     selectRobot,
@@ -63,9 +63,15 @@ function App() {
         }
       }
 
-      // Toggle obstacle mode
-      if (e.key.toLowerCase() === 'o') {
-        toggleObstacleMode()
+      // Cursor mode shortcuts (Minecraft-style)
+      if (e.key === '1') {
+        setCursorMode('select')
+      }
+      if (e.key === '2') {
+        setCursorMode('draw')
+      }
+      if (e.key === '3') {
+        setCursorMode('erase')
       }
 
       // Deselect robot
@@ -76,7 +82,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [paused, pauseSimulation, resumeSimulation, toggleObstacleMode, selectRobot])
+  }, [paused, pauseSimulation, resumeSimulation, setCursorMode, selectRobot])
 
   // Auto-step simulation
   useEffect(() => {
@@ -186,7 +192,7 @@ function App() {
           <ControlPanel
             robotCount={Object.keys(robots).length}
             isPaused={paused}
-            obstacleMode={obstacleMode}
+            cursorMode={cursorMode}
             simulationSpeed={simulationSpeed}
             selectedRobot={selectedRobot}
             onAddRobot={handleAddRobot}
@@ -194,7 +200,7 @@ function App() {
             onRemoveRobot={handleRemoveRobot}
             onResizeArena={(size) => resizeArena(size, size)}
             onTogglePause={handleTogglePause}
-            onToggleObstacleMode={toggleObstacleMode}
+            onSetCursorMode={setCursorMode}
             onSpeedChange={setSimulationSpeed}
             onClearBoard={handleClearBoard}
           />

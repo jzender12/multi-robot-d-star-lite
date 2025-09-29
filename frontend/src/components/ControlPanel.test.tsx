@@ -6,16 +6,17 @@ describe('ControlPanel', () => {
   const defaultProps = {
     robotCount: 2,
     isPaused: true,
-    obstacleMode: 'place' as const,
+    cursorMode: 'select' as const,
     simulationSpeed: 5,
+    selectedRobot: null,
     onAddRobot: vi.fn(),
+    onPlaceRobot: vi.fn(),
     onRemoveRobot: vi.fn(),
     onResizeArena: vi.fn(),
     onTogglePause: vi.fn(),
-    onToggleObstacleMode: vi.fn(),
+    onSetCursorMode: vi.fn(),
     onSpeedChange: vi.fn(),
-    onReset: vi.fn(),
-    onClearAll: vi.fn()
+    onClearBoard: vi.fn()
   }
 
   describe('Rendering', () => {
@@ -58,12 +59,15 @@ describe('ControlPanel', () => {
       expect(screen.getByText('⏸ Pause')).toBeTruthy()
     })
 
-    it('should show correct obstacle mode', () => {
-      const { rerender } = render(<ControlPanel {...defaultProps} obstacleMode="place" />)
-      expect(screen.getByText('Place Mode')).toBeTruthy()
+    it('should show correct cursor mode', () => {
+      const { rerender } = render(<ControlPanel {...defaultProps} cursorMode="select" />)
+      expect(screen.getByText('↯ Select')).toBeTruthy()
 
-      rerender(<ControlPanel {...defaultProps} obstacleMode="draw" />)
-      expect(screen.getByText('Draw Mode')).toBeTruthy()
+      rerender(<ControlPanel {...defaultProps} cursorMode="draw" />)
+      expect(screen.getByText('▣ Draw')).toBeTruthy()
+
+      rerender(<ControlPanel {...defaultProps} cursorMode="erase" />)
+      expect(screen.getByText('⌫ Erase')).toBeTruthy()
     })
   })
 
@@ -106,28 +110,23 @@ describe('ControlPanel', () => {
       expect(onTogglePause).toHaveBeenCalledOnce()
     })
 
-    it('should call onToggleObstacleMode when mode button clicked', () => {
-      const onToggleObstacleMode = vi.fn()
-      render(<ControlPanel {...defaultProps} onToggleObstacleMode={onToggleObstacleMode} />)
+    it('should call onSetCursorMode when cursor mode buttons are clicked', () => {
+      const onSetCursorMode = vi.fn()
+      render(<ControlPanel {...defaultProps} onSetCursorMode={onSetCursorMode} />)
 
-      fireEvent.click(screen.getByText('Place Mode'))
-      expect(onToggleObstacleMode).toHaveBeenCalledOnce()
+      fireEvent.click(screen.getByText('▣ Draw'))
+      expect(onSetCursorMode).toHaveBeenCalledWith('draw')
+
+      fireEvent.click(screen.getByText('⌫ Erase'))
+      expect(onSetCursorMode).toHaveBeenCalledWith('erase')
     })
 
-    it('should call onReset when Reset clicked', () => {
-      const onReset = vi.fn()
-      render(<ControlPanel {...defaultProps} onReset={onReset} />)
+    it('should call onClearBoard when Clear Board clicked', () => {
+      const onClearBoard = vi.fn()
+      render(<ControlPanel {...defaultProps} onClearBoard={onClearBoard} />)
 
-      fireEvent.click(screen.getByText('Reset'))
-      expect(onReset).toHaveBeenCalledOnce()
-    })
-
-    it('should call onClearAll when Clear All clicked', () => {
-      const onClearAll = vi.fn()
-      render(<ControlPanel {...defaultProps} onClearAll={onClearAll} />)
-
-      fireEvent.click(screen.getByText('Clear All'))
-      expect(onClearAll).toHaveBeenCalledOnce()
+      fireEvent.click(screen.getByText('Clear Board'))
+      expect(onClearBoard).toHaveBeenCalledOnce()
     })
   })
 

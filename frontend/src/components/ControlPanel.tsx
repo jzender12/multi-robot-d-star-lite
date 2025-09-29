@@ -3,7 +3,7 @@ import React from 'react'
 interface ControlPanelProps {
   robotCount: number
   isPaused: boolean
-  obstacleMode: 'place' | 'draw'
+  cursorMode: 'select' | 'draw' | 'erase'
   simulationSpeed: number
   selectedRobot: string | null
   onAddRobot: () => void
@@ -11,7 +11,7 @@ interface ControlPanelProps {
   onRemoveRobot: () => void
   onResizeArena: (size: number) => void
   onTogglePause: () => void
-  onToggleObstacleMode: () => void
+  onSetCursorMode: (mode: 'select' | 'draw' | 'erase') => void
   onSpeedChange: (speed: number) => void
   onClearBoard: () => void
 }
@@ -19,7 +19,7 @@ interface ControlPanelProps {
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   robotCount,
   isPaused,
-  obstacleMode,
+  cursorMode,
   simulationSpeed,
   selectedRobot,
   onAddRobot,
@@ -27,7 +27,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onRemoveRobot,
   onResizeArena,
   onTogglePause,
-  onToggleObstacleMode,
+  onSetCursorMode,
   onSpeedChange,
   onClearBoard
 }) => {
@@ -119,14 +119,44 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       </div>
 
-      {/* Obstacle Mode */}
+      {/* Cursor Modes */}
       <div style={styles.section}>
-        <button
-          style={styles.button}
-          onClick={onToggleObstacleMode}
-        >
-          {obstacleMode === 'place' ? 'Obstacle: Place (O)' : 'Obstacle: Draw (O)'}
-        </button>
+        <div style={styles.label}>Cursor Mode</div>
+        <div style={styles.buttonRow}>
+          <button
+            style={{
+              ...styles.smallButton,
+              ...(cursorMode === 'select' ? styles.activeButton : {})
+            }}
+            onClick={() => onSetCursorMode('select')}
+            disabled={cursorMode === 'select'}
+            title="Select Mode (1)"
+          >
+            ↯ Select
+          </button>
+          <button
+            style={{
+              ...styles.smallButton,
+              ...(cursorMode === 'draw' ? styles.activeButton : {})
+            }}
+            onClick={() => onSetCursorMode('draw')}
+            disabled={cursorMode === 'draw'}
+            title="Draw Mode (2)"
+          >
+            ▣ Draw
+          </button>
+          <button
+            style={{
+              ...styles.smallButton,
+              ...(cursorMode === 'erase' ? styles.activeButton : {})
+            }}
+            onClick={() => onSetCursorMode('erase')}
+            disabled={cursorMode === 'erase'}
+            title="Erase Mode (3)"
+          >
+            ⌫ Erase
+          </button>
+        </div>
       </div>
 
       {/* Simulation Control */}
@@ -221,5 +251,9 @@ const styles = {
     fontWeight: 'normal' as const,
     fontSize: '14px',
     borderColor: '#6b7280'
+  },
+  activeButton: {
+    backgroundColor: '#1a1a1f',
+    borderColor: '#4a4a5f'
   }
 }

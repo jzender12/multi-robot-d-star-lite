@@ -22,7 +22,7 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
     pausedRobots,
     stuckRobots,
     collisionInfo,
-    obstacleMode,
+    cursorMode,
     robotPlacementMode,
     placingRobotGoal,
     ghostPosition,
@@ -247,51 +247,54 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
       return
     }
 
-    // Check if clicking on a robot
-    const clickedRobot = Object.entries(robots).find(
-      ([_, robot]) => robot.pos[0] === gridX && robot.pos[1] === gridY
+    // Select mode: only handle robot selection and goal setting
+    if (cursorMode === 'select') {
+      // Check if clicking on a robot
+      const clickedRobot = Object.entries(robots).find(
+        ([_, robot]) => robot.pos[0] === gridX && robot.pos[1] === gridY
+      )
+
+      if (clickedRobot) {
+        const [robotId] = clickedRobot
+        if (selectedRobot === robotId) {
+          selectRobot(null)
+        } else {
+          selectRobot(robotId)
+        }
+      } else if (selectedRobot) {
+        // Set goal for selected robot
+        const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
+        if (!isObstacle) {
+          setGoal(selectedRobot, gridX, gridY)
+          selectRobot(null)
+        }
+      }
+      return
+    }
+
+    // Draw/Erase modes: handle obstacles
+    const hasRobot = Object.values(robots).some(
+      robot => robot.pos[0] === gridX && robot.pos[1] === gridY
     )
-
-    if (clickedRobot) {
-      const [robotId] = clickedRobot
-      if (selectedRobot === robotId) {
-        selectRobot(null)
-      } else {
-        selectRobot(robotId)
-      }
-      return
-    }
-
-    // If robot is selected, set its goal
-    if (selectedRobot) {
-      // Check if position is valid for goal (not on obstacle)
-      const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
-      if (!isObstacle) {
-        setGoal(selectedRobot, gridX, gridY)
-        selectRobot(null)
-      }
-      return
-    }
-
-    // Otherwise, toggle obstacle
-    const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
-    const isGoal = Object.values(robots).some(
+    const hasGoal = Object.values(robots).some(
       robot => robot.goal[0] === gridX && robot.goal[1] === gridY
     )
 
-    if (!isGoal) {
-      if (isObstacle) {
-        removeObstacle(gridX, gridY)
-      } else {
+    if (!hasRobot && !hasGoal) {
+      const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
+
+      if (cursorMode === 'draw' && !isObstacle) {
         addObstacle(gridX, gridY)
+      } else if (cursorMode === 'erase' && isObstacle) {
+        removeObstacle(gridX, gridY)
       }
     }
   }
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (obstacleMode === 'draw') {
+    if (cursorMode === 'draw' || cursorMode === 'erase') {
       setIsDragging(true)
-      handleDrawMode(e)
+      handleDragMode(e)
     } else {
       handleCanvasClick(e)
     }
@@ -320,8 +323,8 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
       }
     }
 
-    if (isDragging && obstacleMode === 'draw') {
-      handleDrawMode(e)
+    if (isDragging && (cursorMode === 'draw' || cursorMode === 'erase')) {
+      handleDragMode(e)
     }
   }
 
@@ -338,7 +341,23 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
     }
   }
 
-  const handleDrawMode = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getCursorStyle = () => {
+    if (robotPlacementMode) return 'copy'
+    if (placingRobotGoal) return 'crosshair'
+
+    switch (cursorMode) {
+      case 'select':
+        return selectedRobot ? 'crosshair' : 'pointer'
+      case 'draw':
+        return 'crosshair'
+      case 'erase':
+        return 'grab'
+      default:
+        return 'pointer'
+    }
+  }
+
+  const handleDragMode = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
     if (!canvas) return
 
@@ -366,8 +385,11 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
 
     if (!hasRobot && !hasGoal) {
       const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
-      if (!isObstacle) {
+
+      if (cursorMode === 'draw' && !isObstacle) {
         addObstacle(gridX, gridY)
+      } else if (cursorMode === 'erase' && isObstacle) {
+        removeObstacle(gridX, gridY)
       }
     }
   }
@@ -383,7 +405,7 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
       onMouseLeave={handleMouseLeave}
       style={{
         border: '1px solid #2a2a35',
-        cursor: robotPlacementMode ? 'copy' : (selectedRobot || placingRobotGoal ? 'crosshair' : 'pointer'),
+        cursor: getCursorStyle(),
         display: 'block',
         backgroundColor: '#0f0f14'
       }}
