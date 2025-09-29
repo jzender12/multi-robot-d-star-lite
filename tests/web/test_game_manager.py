@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 def test_game_manager_init():
     """GameManager initializes with clean slate."""
-    from multi_robot_d_star_lite.web.game_manager import GameManager
+    from multi_robot_playground.web.game_manager import GameManager
 
     game = GameManager()
     assert game.world.width == 10
@@ -24,7 +24,7 @@ def test_game_manager_init():
 
 def test_serialize_game_state():
     """Game state serializes to correct JSON format."""
-    from multi_robot_d_star_lite.web.game_manager import GameManager
+    from multi_robot_playground.web.game_manager import GameManager
 
     game = GameManager()
     # Add a robot to test serialization
@@ -51,7 +51,7 @@ def test_serialize_game_state():
 
 def test_process_step():
     """Step advances simulation."""
-    from multi_robot_d_star_lite.web.game_manager import GameManager
+    from multi_robot_playground.web.game_manager import GameManager
 
     game = GameManager()
     # Add a robot first
@@ -71,7 +71,7 @@ def test_process_step():
 
 def test_add_obstacle_updates_paths():
     """Adding obstacle triggers path recalculation."""
-    from multi_robot_d_star_lite.web.game_manager import GameManager
+    from multi_robot_playground.web.game_manager import GameManager
 
     game = GameManager()
     # Add a robot first
@@ -91,7 +91,7 @@ def test_add_obstacle_updates_paths():
 
 def test_remove_obstacle():
     """Removing obstacle updates world."""
-    from multi_robot_d_star_lite.web.game_manager import GameManager
+    from multi_robot_playground.web.game_manager import GameManager
 
     game = GameManager()
     game.add_obstacle(5, 5)
@@ -103,7 +103,7 @@ def test_remove_obstacle():
 
 def test_set_robot_goal():
     """Setting new goal updates robot and triggers replan."""
-    from multi_robot_d_star_lite.web.game_manager import GameManager
+    from multi_robot_playground.web.game_manager import GameManager
 
     game = GameManager()
     # Add a robot first
@@ -121,7 +121,7 @@ def test_set_robot_goal():
 
 def test_add_robot():
     """Adding robot creates new robot in system."""
-    from multi_robot_d_star_lite.web.game_manager import GameManager
+    from multi_robot_playground.web.game_manager import GameManager
 
     game = GameManager()
     robot_id = game.add_robot((2, 2), (7, 7))
@@ -138,7 +138,7 @@ def test_add_robot():
 
 def test_get_robot_positions():
     """Get all robot positions in correct format."""
-    from multi_robot_d_star_lite.web.game_manager import GameManager
+    from multi_robot_playground.web.game_manager import GameManager
 
     game = GameManager()
     game.add_robot((0, 0), (9, 9))
@@ -151,7 +151,7 @@ def test_get_robot_positions():
 
 def test_collision_detection():
     """Collisions are detected and reported in state."""
-    from multi_robot_d_star_lite.web.game_manager import GameManager
+    from multi_robot_playground.web.game_manager import GameManager
 
     game = GameManager()
     # Add robots that will collide

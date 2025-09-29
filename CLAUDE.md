@@ -1,6 +1,6 @@
-# Multi-Robot D* Lite Path Planning System
+# Multi-Robot Playground
 
-This is a complete multi-agent path planning system using D* Lite for a 10x10 grid with multiple robots. The implementation focuses on correctness and clarity. The system demonstrates D* Lite's incremental replanning capabilities with iterative collision detection that blocks all robots involved in collisions.
+This is a complete multi-agent path planning playground for a 10x10 grid with multiple robots. The implementation focuses on correctness and clarity. The system currently uses D* Lite as the pathfinding algorithm and demonstrates incremental replanning capabilities with iterative collision detection that blocks all robots involved in collisions.
 
 **Important**: In this implementation, robots do NOT act as obstacles during path planning. This allows paths to potentially overlap, with collision detection catching conflicts at runtime and blocking affected robots until the collision is resolved.
 
@@ -37,8 +37,8 @@ D* Lite maintains two distance values for each cell: the g-value (current best d
 ## Project Structure (Unified Package)
 
 ```
-multi-robot-d-star-lite/
-├── multi_robot_d_star_lite/    # Main Python package (unified structure)
+multi-robot-playground/
+├── multi_robot_playground/    # Main Python package (unified structure)
 │   ├── __init__.py             # Package initialization with exports
 │   ├── core/                   # Core pathfinding logic (shared by all interfaces)
 │   │   ├── __init__.py
@@ -89,9 +89,8 @@ multi-robot-d-star-lite/
 ├── [REMOVED] main.py           # Removed with pygame interface
 ├── run_dev.sh                  # Universal launcher with RAII-style venv management
 ├── run_tests.sh                # Test runner for all components
-├── requirements.txt            # All dependencies (core + pygame + web + testing)
-├── setup.py                    # Package installation configuration
-├── pyproject.toml             # Modern Python project configuration
+├── requirements.txt            # All dependencies (core + web + testing)
+├── pyproject.toml             # Minimal package configuration and dependencies
 ├── tox.ini                    # Testing automation
 ├── README.md                  # Public documentation
 ├── CLAUDE.md                  # This file - internal documentation
@@ -318,8 +317,8 @@ The project has been restructured into a unified Python package that supports bo
 sudo apt-get install python3-venv python3-pip nodejs npm
 
 # Clone and setup
-git clone https://github.com/jzender12/multi-robot-d-star-lite.git
-cd multi-robot-d-star-lite
+git clone https://github.com/jzender12/multi-robot-playground.git
+cd multi-robot-playground
 
 # Install package in development mode (optional)
 ./run_dev.sh pip install -e .
@@ -358,7 +357,7 @@ cd multi-robot-d-star-lite
 ./run_dev.sh pytest tests/
 
 # Run with coverage
-./run_dev.sh pytest tests/ --cov=multi_robot_d_star_lite
+./run_dev.sh pytest tests/ --cov=multi_robot_playground
 
 # Run specific test categories
 ./run_dev.sh pytest tests/web/          # Web interface tests
@@ -399,7 +398,7 @@ The `run_dev.sh` script is the universal launcher that provides RAII-style virtu
 ./run_dev.sh pytest tests/test_world.py
 
 # Run with coverage
-./run_dev.sh pytest tests/ --cov=multi_robot_d_star_lite
+./run_dev.sh pytest tests/ --cov=multi_robot_playground
 
 # Run with tox
 ./run_dev.sh tox
@@ -433,8 +432,8 @@ B . . . 2   # 2=robot2 start, B=robot2 goal
 
 ### Tools for Test Cases
 
-- **multi_robot_d_star_lite/utils/parse_test_grid.py**: Parses visual format into GridWorld setup
-- **multi_robot_d_star_lite/utils/export_grid.py**: Exports current grid state to visual format
+- **multi_robot_playground/utils/parse_test_grid.py**: Parses visual format into GridWorld setup
+- **multi_robot_playground/utils/export_grid.py**: Exports current grid state to visual format
 - **tests/test_collision.py**: Unified test runner that loads all tests from test_cases.txt
 
 During simulation, press 'C' when paused to copy the current grid state to clipboard for creating new test cases.
@@ -489,19 +488,19 @@ With the unified package architecture, imports are organized by module:
 
 ```python
 # Core components (shared by all interfaces)
-from multi_robot_d_star_lite.core import GridWorld, MultiAgentCoordinator
-from multi_robot_d_star_lite.core.path_planners import DStarLitePlanner
+from multi_robot_playground.core import GridWorld, MultiAgentCoordinator
+from multi_robot_playground.core.path_planners import DStarLitePlanner
 
 # Pygame interface components - REMOVED
 # The pygame interface has been completely removed
 
 # Web interface components
-from multi_robot_d_star_lite.web import GameManager
-from multi_robot_d_star_lite.web.main import app  # FastAPI app
+from multi_robot_playground.web import GameManager
+from multi_robot_playground.web.main import app  # FastAPI app
 
 # Shared utilities
-from multi_robot_d_star_lite.utils.colors import get_robot_color
-from multi_robot_d_star_lite.utils.export_grid import export_to_visual_format
+from multi_robot_playground.utils.colors import get_robot_color
+from multi_robot_playground.utils.export_grid import export_to_visual_format
 ```
 
 ## Test-Driven Development

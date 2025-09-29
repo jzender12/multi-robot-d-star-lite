@@ -5,7 +5,7 @@ Includes visual ASCII verification for human inspection.
 """
 
 from colorama import init, Fore, Back, Style
-from multi_robot_d_star_lite.core.world import GridWorld, CellType
+from multi_robot_playground.core.world import GridWorld, CellType
 
 # Initialize colorama for colored output
 init(autoreset=True)

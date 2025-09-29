@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-# run_tests.sh - Run all tests for the Multi-Robot D* Lite project
+# run_tests.sh - Run all tests for the Multi-Robot Playground project
 # Uses run_dev.sh for consistent virtual environment management
 #
 
 set -e  # Exit on error
 
 echo "========================================="
-echo "Running Multi-Robot D* Lite Test Suite"
+echo "Running Multi-Robot Playground Test Suite"
 echo "========================================="
 echo ""
 

@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 def test_websocket_connection():
     """WebSocket accepts connection and sends initial state."""
-    from multi_robot_d_star_lite.web.main import app
+    from multi_robot_playground.web.main import app
 
     client = TestClient(app)
     with client.websocket_connect("/ws") as websocket:
@@ -25,7 +25,7 @@ def test_websocket_connection():
 
 def test_receive_initial_state():
     """Initial state contains correct game setup."""
-    from multi_robot_d_star_lite.web.main import app
+    from multi_robot_playground.web.main import app
 
     client = TestClient(app)
     with client.websocket_connect("/ws") as websocket:
@@ -42,7 +42,7 @@ def test_receive_initial_state():
 
 def test_step_command():
     """Step command advances simulation and returns updated state."""
-    from multi_robot_d_star_lite.web.main import app
+    from multi_robot_playground.web.main import app
 
     client = TestClient(app)
     with client.websocket_connect("/ws") as websocket:
@@ -76,7 +76,7 @@ def test_step_command():
 
 def test_add_obstacle_command():
     """Add obstacle command updates grid and triggers replan."""
-    from multi_robot_d_star_lite.web.main import app
+    from multi_robot_playground.web.main import app
 
     client = TestClient(app)
     with client.websocket_connect("/ws") as websocket:
@@ -110,7 +110,7 @@ def test_add_obstacle_command():
 
 def test_remove_obstacle_command():
     """Remove obstacle command updates grid."""
-    from multi_robot_d_star_lite.web.main import app
+    from multi_robot_playground.web.main import app
 
     client = TestClient(app)
     with client.websocket_connect("/ws") as websocket:
@@ -135,7 +135,7 @@ def test_remove_obstacle_command():
 
 def test_set_goal_command():
     """Set goal command updates robot goal and replans."""
-    from multi_robot_d_star_lite.web.main import app
+    from multi_robot_playground.web.main import app
 
     client = TestClient(app)
     with client.websocket_connect("/ws") as websocket:
@@ -170,7 +170,7 @@ def test_set_goal_command():
 
 def test_add_robot_command():
     """Add robot command creates new robot."""
-    from multi_robot_d_star_lite.web.main import app
+    from multi_robot_playground.web.main import app
 
     client = TestClient(app)
     with client.websocket_connect("/ws") as websocket:
@@ -193,7 +193,7 @@ def test_add_robot_command():
 
 def test_invalid_command_handling():
     """Invalid commands return error message."""
-    from multi_robot_d_star_lite.web.main import app
+    from multi_robot_playground.web.main import app
 
     client = TestClient(app)
     with client.websocket_connect("/ws") as websocket:
@@ -213,7 +213,7 @@ def test_invalid_command_handling():
 
 def test_pause_resume_command():
     """Pause and resume commands control simulation state."""
-    from multi_robot_d_star_lite.web.main import app
+    from multi_robot_playground.web.main import app
 
     client = TestClient(app)
     with client.websocket_connect("/ws") as websocket:

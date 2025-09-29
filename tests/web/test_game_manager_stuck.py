@@ -8,7 +8,7 @@ import os
 
 # Add parent directory to path to import the game modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from multi_robot_d_star_lite.web.game_manager import GameManager
+from multi_robot_playground.web.game_manager import GameManager
 
 
 class TestGameManagerStuckDetection:

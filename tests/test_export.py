@@ -3,10 +3,10 @@
 Test the grid export feature.
 """
 
-from multi_robot_d_star_lite.core.world import GridWorld
-from multi_robot_d_star_lite.core.coordinator import MultiAgentCoordinator
-from multi_robot_d_star_lite.utils.export_grid import export_to_visual_format
-from multi_robot_d_star_lite.utils.parse_test_grid import setup_from_visual
+from multi_robot_playground.core.world import GridWorld
+from multi_robot_playground.core.coordinator import MultiAgentCoordinator
+from multi_robot_playground.utils.export_grid import export_to_visual_format
+from multi_robot_playground.utils.parse_test_grid import setup_from_visual
 
 # Create a test scenario
 world = GridWorld(5, 5)

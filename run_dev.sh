@@ -100,14 +100,14 @@ fi
 # Execute command or launch the app
 if [ $# -eq 0 ]; then
     # No arguments - launch the web application
-    print_msg "Launching Multi-Robot D* Lite Web Application..."
+    print_msg "Launching Multi-Robot Playground Web Application..."
     print_msg "Backend will run on http://localhost:8000"
     print_msg "Frontend will run on http://localhost:5173"
     echo ""
 
     # Start backend in background
     print_msg "Starting backend server..."
-    python3 -m uvicorn multi_robot_d_star_lite.web.main:app --reload --host 0.0.0.0 --port 8000 &
+    python3 -m uvicorn multi_robot_playground.web.main:app --reload --host 0.0.0.0 --port 8000 &
     BACKEND_PID=$!
 
     # Give backend time to start

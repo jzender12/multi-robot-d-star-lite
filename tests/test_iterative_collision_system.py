@@ -8,8 +8,8 @@ This replaces the pair-based system with a cleaner approach:
 """
 
 import pytest
-from multi_robot_d_star_lite.core.world import GridWorld
-from multi_robot_d_star_lite.core.coordinator import MultiAgentCoordinator
+from multi_robot_playground.core.world import GridWorld
+from multi_robot_playground.core.coordinator import MultiAgentCoordinator
 
 
 class TestBasicPathCollisions:

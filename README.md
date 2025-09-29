@@ -1,6 +1,6 @@
-# Multi-Robot D* Lite Path Planning System
+# Multi-Robot Playground
 
-Multi-robot path planning system using D* Lite algorithm with collision detection.
+Multi-robot path planning playground with collision detection. Currently implements D* Lite algorithm with support for multiple pathfinding algorithms.
 
 ## Requirements
 
@@ -12,8 +12,8 @@ Multi-robot path planning system using D* Lite algorithm with collision detectio
 
 ```bash
 # Clone the repository
-git clone https://github.com/jzender12/multi-robot-d-star-lite.git
-cd multi-robot-d-star-lite
+git clone https://github.com/jzender12/multi-robot-playground.git
+cd multi-robot-playground
 ```
 
 ## Run

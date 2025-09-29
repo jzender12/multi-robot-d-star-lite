@@ -6,7 +6,7 @@ Tests dynamic color generation for multiple robots.
 
 import pytest
 import colorsys
-from multi_robot_d_star_lite.utils.colors import (
+from multi_robot_playground.utils.colors import (
     generate_robot_color,
     get_robot_colors,
     hsv_to_rgb,
@@ -90,7 +90,7 @@ class TestColorContrast:
     def test_color_distance(self):
         """Should calculate color distance correctly"""
         # Test color distance calculation
-        from multi_robot_d_star_lite.utils.colors import color_distance
+        from multi_robot_playground.utils.colors import color_distance
 
         # Same color
         dist = color_distance((100, 100, 100), (100, 100, 100))
@@ -114,7 +114,7 @@ class TestColorContrast:
 
             # Check distance from all previously generated colors
             for prev_color in generated:
-                from multi_robot_d_star_lite.utils.colors import color_distance
+                from multi_robot_playground.utils.colors import color_distance
                 dist = color_distance(color, prev_color)
                 # Should have minimum distance (relaxed threshold)
                 assert dist > 10  # Minimum threshold for adjacent colors
@@ -127,7 +127,7 @@ class TestColorSets:
 
     def test_robot_goal_path_colors_match(self):
         """Robot, goal, and path colors should be related"""
-        from multi_robot_d_star_lite.utils.colors import get_color_set
+        from multi_robot_playground.utils.colors import get_color_set
 
         for i in range(1, 10):
             robot_id = f"robot{i}"
@@ -152,7 +152,7 @@ class TestColorSets:
 
     def test_color_set_consistency(self):
         """Color set for same robot should be consistent"""
-        from multi_robot_d_star_lite.utils.colors import get_color_set
+        from multi_robot_playground.utils.colors import get_color_set
 
         robot_id = "robot5"
 
@@ -171,7 +171,7 @@ class TestDynamicColorGeneration:
 
     def test_hue_distribution(self):
         """Hues should be evenly distributed"""
-        from multi_robot_d_star_lite.utils.colors import get_hue_for_robot
+        from multi_robot_playground.utils.colors import get_hue_for_robot
 
         # For 10 robots, hues should be evenly spaced
         hues = []
@@ -215,7 +215,7 @@ class TestColorPersistence:
 
     def test_color_caching(self):
         """Colors should be cached for performance"""
-        from multi_robot_d_star_lite.utils.colors import generate_robot_color, clear_color_cache
+        from multi_robot_playground.utils.colors import generate_robot_color, clear_color_cache
 
         # Clear cache if it exists
         if hasattr(generate_robot_color, 'clear_cache'):
@@ -231,7 +231,7 @@ class TestColorPersistence:
 
     def test_clear_color_cache(self):
         """Should be able to clear color cache"""
-        from multi_robot_d_star_lite.utils.colors import generate_robot_color, clear_color_cache
+        from multi_robot_playground.utils.colors import generate_robot_color, clear_color_cache
 
         # Generate color
         color1 = generate_robot_color("robot15")

@@ -4,7 +4,7 @@ Test robot ID pool management for limiting to 10 robots and reusing IDs.
 """
 
 import pytest
-from multi_robot_d_star_lite.web.game_manager import GameManager
+from multi_robot_playground.web.game_manager import GameManager
 
 
 class TestRobotIDPool:
