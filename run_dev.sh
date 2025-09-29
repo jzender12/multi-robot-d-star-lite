@@ -27,8 +27,34 @@ print_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
+# Global variable to track backend PID
+BACKEND_PID=""
+
+# Function to kill a process and all its children
+kill_process_tree() {
+    local pid=$1
+    if [ -n "$pid" ] && [ "$pid" != "0" ]; then
+        # Try to kill the process group first
+        kill -TERM -$pid 2>/dev/null || true
+        # Also kill the specific PID
+        kill -TERM $pid 2>/dev/null || true
+        # Give processes time to cleanup
+        sleep 0.5
+        # Force kill if still running
+        kill -KILL -$pid 2>/dev/null || true
+        kill -KILL $pid 2>/dev/null || true
+    fi
+}
+
 # Cleanup function (RAII-style destructor)
 cleanup() {
+    # Kill backend process if it exists
+    if [ -n "$BACKEND_PID" ]; then
+        print_msg "Stopping backend server..."
+        kill_process_tree $BACKEND_PID
+        BACKEND_PID=""
+    fi
+
     if [ -n "$VIRTUAL_ENV" ]; then
         print_msg "Deactivating virtual environment..."
         deactivate 2>/dev/null || true
@@ -105,22 +131,29 @@ if [ $# -eq 0 ]; then
     print_msg "Frontend will run on http://localhost:5173"
     echo ""
 
-    # Start backend in background
+    # Start backend in background (in its own process group for clean shutdown)
     print_msg "Starting backend server..."
-    python3 -m uvicorn multi_robot_playground.web.main:app --reload --host 0.0.0.0 --port 8000 &
+    # Use setsid to create a new process group
+    setsid python3 -m uvicorn multi_robot_playground.web.main:app --reload --host 0.0.0.0 --port 8000 &
     BACKEND_PID=$!
 
     # Give backend time to start
     sleep 2
 
-    # Start frontend
+    # Check if backend started successfully
+    if ! kill -0 $BACKEND_PID 2>/dev/null; then
+        print_error "Backend server failed to start"
+        exit 1
+    fi
+
+    # Start frontend (this will run in foreground)
     print_msg "Starting frontend server..."
     cd frontend
     npm install
     npm run dev
 
-    # Kill backend when frontend exits
-    kill $BACKEND_PID 2>/dev/null || true
+    # Frontend exited normally (not via Ctrl+C)
+    # The trap handler will clean up the backend
 else
     print_msg "Executing: $@"
     echo ""

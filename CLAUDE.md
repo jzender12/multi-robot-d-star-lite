@@ -310,6 +310,31 @@ The project has been restructured into a unified Python package that supports bo
   - Shortcuts more discoverable in control panel
   - All tests passing
 
+### Clean Process Management in run_dev.sh
+- **Problem**: Required two Ctrl+C presses to fully exit when running web application
+  - First Ctrl+C stopped frontend but backend (uvicorn) continued running
+  - Backend spawned reloader and server processes that weren't properly terminated
+  - User had to press Ctrl+C again to kill orphaned backend processes
+- **Solution**: Improved process management with proper cleanup
+  - **Process Group Management**:
+    - Backend launched with `setsid` to create new process group
+    - Enables killing entire process tree including child processes
+  - **Enhanced Cleanup Function**:
+    - Added `kill_process_tree()` function to terminate process and all children
+    - Sends TERM signal to process group first, then KILL if needed
+    - Properly handles uvicorn's reloader and server processes
+  - **Global PID Tracking**:
+    - `BACKEND_PID` variable tracks backend process for cleanup
+    - Cleanup function checks and kills backend before deactivating venv
+- **Implementation Details**:
+  - Added 0.5 second grace period between TERM and KILL signals
+  - Backend startup verification with `kill -0` check
+  - Exit if backend fails to start to prevent zombie frontend
+- **Result**: Single Ctrl+C now cleanly exits both frontend and backend
+  - No orphaned processes remain
+  - Clean shutdown messages displayed
+  - Improved developer experience
+
 ## Installation and Setup
 
 ```bash
