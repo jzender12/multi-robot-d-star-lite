@@ -529,6 +529,7 @@ This project follows TDD principles with comprehensive test coverage:
 - `test_no_duplicate_start_positions`: Now correctly expects False return
 - `test_coordinator_resize_clean_slate`: Tests clean slate behavior
 - `test_full_resize_workflow`: Validates robot1 placement after resize
+- **CI/CD Package Discovery Fix**: Added explicit package configuration to pyproject.toml to prevent "Multiple top-level packages" error by excluding frontend directory
 
 ## Future Enhancements
 
