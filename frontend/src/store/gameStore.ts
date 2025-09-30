@@ -30,6 +30,7 @@ interface GameStore {
   paused: boolean
   pausedRobots: string[]
   stuckRobots: string[]
+  goalBlockedRobots: string[]  // Robots with goal blocked by obstacle
   collisionInfo: CollisionList | null
   activeCollisions: Set<string>  // Track which collisions we've already logged
 
@@ -83,6 +84,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   paused: true,
   pausedRobots: [],
   stuckRobots: [],
+  goalBlockedRobots: [],
   collisionInfo: null,
   activeCollisions: new Set(),
 
@@ -119,8 +121,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
     })
 
     client.onError((error) => {
-      set({ connectionError: error.message || 'Connection error' })
-      get().addLog(`Connection error: ${error.message}`, 'error')
+      // Handle both connection errors and command errors
+      if (error.message) {
+        // Command error (e.g., goal placement failed)
+        if (error.message.includes('goal')) {
+          get().addLog(error.message, 'warning')
+        } else {
+          get().addLog(error.message, 'error')
+        }
+      } else {
+        // Connection error
+        set({ connectionError: error.message || 'Connection error' })
+        get().addLog(`Connection error: ${error.message}`, 'error')
+      }
     })
 
     client.connect()
@@ -229,6 +242,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       paused: state.paused ?? true,
       pausedRobots: state.paused_robots || [],
       stuckRobots: state.stuck_robots || [],
+      goalBlockedRobots: state.goal_blocked_robots || [],
       collisionInfo: state.collision_info || null,
       activeCollisions: newActiveCollisions
     })
@@ -284,7 +298,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { wsClient } = get()
     if (wsClient) {
       wsClient.sendSetGoal(robotId, x, y)
-      get().addLog(`Set ${robotId} goal to (${x}, ${y})`, 'info')
+      // Don't log immediately - wait for backend confirmation or error
     }
   },
 
