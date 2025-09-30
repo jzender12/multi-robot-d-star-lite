@@ -22,6 +22,7 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
     selectedRobot,
     pausedRobots,
     stuckRobots,
+    goalBlockedRobots,
     collisionInfo,
     cursorMode,
     robotPlacementMode,
@@ -148,6 +149,16 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
           cellSize - 10,
           cellSize - 10
         )
+      } else if (goalBlockedRobots.includes(robotId)) {
+        // Yellow border for goal-blocked robots (goal has obstacle)
+        ctx.strokeStyle = '#eab308'
+        ctx.lineWidth = 2
+        ctx.strokeRect(
+          robot.pos[0] * cellSize + 5,
+          robot.pos[1] * cellSize + 5,
+          cellSize - 10,
+          cellSize - 10
+        )
       } else if (stuckRobots.includes(robotId)) {
         // Muted red border for stuck robots (cannot reach goal)
         ctx.strokeStyle = '#dc2626'
@@ -206,7 +217,7 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
       ctx.textBaseline = 'middle'
       ctx.fillText('?', ghostX, ghostY)
     }
-  }, [gridSize, robots, obstacles, paths, selectedRobot, stuckRobots, collisionInfo, cellSize, canvasWidth, canvasHeight, width, height, robotPlacementMode, ghostPosition])
+  }, [gridSize, robots, obstacles, paths, selectedRobot, stuckRobots, goalBlockedRobots, collisionInfo, cellSize, canvasWidth, canvasHeight, width, height, robotPlacementMode, ghostPosition])
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -239,8 +250,13 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
     // Handle goal placement after robot placement
     if (placingRobotGoal && selectedRobot) {
       const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
-      // Allow placing goal on any position except obstacles
-      if (!isObstacle) {
+      // Check if another robot already has this goal
+      const isGoalTaken = Object.entries(robots).some(
+        ([id, robot]) => id !== selectedRobot &&
+          robot.goal[0] === gridX && robot.goal[1] === gridY
+      )
+      // Allow placing goal on any position except obstacles and other robots' goals
+      if (!isObstacle && !isGoalTaken) {
         setGoal(selectedRobot, gridX, gridY)
         setPlacingRobotGoal(false)
         selectRobot(null)
@@ -265,7 +281,12 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
       } else if (selectedRobot) {
         // Set goal for selected robot
         const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
-        if (!isObstacle) {
+        // Check if another robot already has this goal
+        const isGoalTaken = Object.entries(robots).some(
+          ([id, robot]) => id !== selectedRobot &&
+            robot.goal[0] === gridX && robot.goal[1] === gridY
+        )
+        if (!isObstacle && !isGoalTaken) {
           setGoal(selectedRobot, gridX, gridY)
           selectRobot(null)
         }
@@ -277,11 +298,9 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
     const hasRobot = Object.values(robots).some(
       robot => robot.pos[0] === gridX && robot.pos[1] === gridY
     )
-    const hasGoal = Object.values(robots).some(
-      robot => robot.goal[0] === gridX && robot.goal[1] === gridY
-    )
 
-    if (!hasRobot && !hasGoal) {
+    // Allow obstacles on goals but not on robots
+    if (!hasRobot) {
       const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
 
       if (cursorMode === 'draw' && !isObstacle) {
@@ -376,15 +395,12 @@ export const Grid2D: React.FC<Grid2DProps> = ({ cellSize = 50 }) => {
 
     setLastDragCell([gridX, gridY])
 
-    // Don't place obstacles on robots or goals
+    // Don't place obstacles on robots (but allow on goals)
     const hasRobot = Object.values(robots).some(
       robot => robot.pos[0] === gridX && robot.pos[1] === gridY
     )
-    const hasGoal = Object.values(robots).some(
-      robot => robot.goal[0] === gridX && robot.goal[1] === gridY
-    )
 
-    if (!hasRobot && !hasGoal) {
+    if (!hasRobot) {
       const isObstacle = obstacles.some(([ox, oy]) => ox === gridX && oy === gridY)
 
       if (cursorMode === 'draw' && !isObstacle) {

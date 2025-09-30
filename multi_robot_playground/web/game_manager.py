@@ -36,7 +36,8 @@ class GameManager:
                 "goal": list(self.coordinator.goals[robot_id]),
                 "path": self.coordinator.paths.get(robot_id, []),
                 "is_stuck": robot_id in self.coordinator.stuck_robots,
-                "is_paused": robot_id in self.coordinator.collision_blocked_robots
+                "is_paused": robot_id in self.coordinator.collision_blocked_robots,
+                "is_goal_blocked": robot_id in self.coordinator.goal_blocked_robots
             }
 
         return {
@@ -48,7 +49,8 @@ class GameManager:
             "paused": self.paused,
             "collision_info": self._get_collision_info(),
             "stuck_robots": list(self.coordinator.stuck_robots),
-            "collision_blocked_robots": list(self.coordinator.collision_blocked_robots.keys())
+            "collision_blocked_robots": list(self.coordinator.collision_blocked_robots.keys()),
+            "goal_blocked_robots": list(self.coordinator.goal_blocked_robots)
         }
 
     def get_robot_positions_and_goals(self) -> Dict[str, Dict]:
@@ -114,10 +116,10 @@ class GameManager:
             self.step_count += 1
         return self.get_state()
 
-    def add_obstacle(self, x: int, y: int) -> Dict[str, Any]:
-        """Add obstacle at position."""
-        self.coordinator.add_dynamic_obstacle(x, y)
-        return self.get_state()
+    def add_obstacle(self, x: int, y: int) -> Tuple[bool, Dict[str, Any]]:
+        """Add obstacle at position. Returns (success, state)."""
+        success = self.coordinator.add_dynamic_obstacle(x, y)
+        return success, self.get_state()
 
     def remove_obstacle(self, x: int, y: int) -> Dict[str, Any]:
         """Remove obstacle at position."""
