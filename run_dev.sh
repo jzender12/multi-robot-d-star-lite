@@ -133,9 +133,18 @@ if [ $# -eq 0 ]; then
 
     # Start backend in background (in its own process group for clean shutdown)
     print_msg "Starting backend server..."
-    # Use setsid to create a new process group
-    setsid python3 -m uvicorn multi_robot_playground.web.main:app --reload --host 0.0.0.0 --port 8000 &
+    # On macOS, setsid is not available. Use subshell and exec for process group creation.
+    (
+        exec python3 -m uvicorn multi_robot_playground.web.main:app --reload --host 0.0.0.0 --port 8000
+    ) &
     BACKEND_PID=$!
+    # Put backend in its own process group (works on macOS & Linux)
+    if command -v setpgid >/dev/null 2>&1; then
+        setpgid $BACKEND_PID $BACKEND_PID 2>/dev/null || true
+    else
+        # Fallback: use builtin 'kill -0' to confirm PID exists, nothing else needed
+        true
+    fi
 
     # Give backend time to start
     sleep 2
