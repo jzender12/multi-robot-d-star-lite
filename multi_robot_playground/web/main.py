@@ -78,8 +78,14 @@ async def websocket_endpoint(websocket: WebSocket):
 
             elif command_type == "add_obstacle":
                 x, y = data.get("x"), data.get("y")
-                response = game.add_obstacle(x, y)
-                await websocket.send_json(response)
+                success, response = game.add_obstacle(x, y)
+                if success:
+                    await websocket.send_json(response)
+                else:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": f"Cannot place obstacle at ({x}, {y}): Position has a robot"
+                    })
 
             elif command_type == "remove_obstacle":
                 x, y = data.get("x"), data.get("y")

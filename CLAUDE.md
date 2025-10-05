@@ -335,6 +335,86 @@ The project has been restructured into a unified Python package that supports bo
   - Clean shutdown messages displayed
   - Improved developer experience
 
+### Robust Replanning for Path Extraction Failures
+- **Problem**: Path extraction could fail even after successful `compute_shortest_path()`
+  - Previously only retried for "no_path_exists" failures
+  - No retry for "max_iterations_exceeded" or "inconsistent_state" failures
+  - Path extraction failures (get_path() returning empty/None) weren't handled
+- **Solution**: Enhanced `recompute_paths()` method with comprehensive replanning
+  - **Complete Replan for All Failure Types**:
+    - Attempts complete replan for ANY compute failure (not just "no_path_exists")
+    - Covers "max_iterations_exceeded", "inconsistent_state", and "no_path_exists"
+  - **Path Extraction Failure Handling**:
+    - If `get_path()` returns empty/None after successful compute, tries complete replan
+    - Reinitializes planner from scratch to escape local minima
+  - **Improved Logging**:
+    - Clear messages about what triggered the replan
+    - Success/failure status of replan attempts
+    - Specific failure reasons included in logs
+- **Implementation** (multi_robot_playground/core/coordinator.py:354-395):
+  - First attempts standard `compute_shortest_path()`
+  - If fails, reinitializes planner and retries regardless of failure type
+  - If compute succeeds but path extraction fails, reinitializes and retries
+  - Provides fallback to empty path if all attempts fail
+- **Benefits**:
+  - More robust handling of edge cases in pathfinding
+  - Better recovery from inconsistent states
+  - Clearer debugging through improved logging
+  - All tests still passing
+
+### Goal Validation & Obstacle-on-Goal Features
+- **Problem**: Frontend-backend validation mismatch and inflexible goal/obstacle rules
+  - Frontend allowed multiple robots to have same goal (causes unsolvable collisions)
+  - Backend correctly prevented duplicate goals but error wasn't shown to users
+  - Obstacles couldn't be placed on goals (limiting dynamic gameplay)
+  - No clear indication when robot's goal was blocked by obstacle
+  - Backend had no validation for obstacle placement on robots
+- **Solution**: Synchronized validation and new goal-blocked state
+  - **Frontend Goal Validation** (frontend/src/components/Grid2D.tsx):
+    - Added duplicate goal check to prevent multiple robots sharing same goal
+    - Validates in both robot placement mode and select mode
+    - Prevents unsolvable collision scenarios
+  - **Obstacle Placement Validation**:
+    - Backend: Added validation to prevent obstacles on robot positions
+    - Frontend: Already prevented obstacles on robots
+    - Both now consistently prevent obstacles on robots
+    - Obstacles can be placed on goals (dynamic gameplay feature)
+  - **Goal-Blocked State** (multi_robot_playground/core/coordinator.py):
+    - New `goal_blocked_robots` set tracks robots with obstacles on goals
+    - `detect_stuck_robots()` enhanced to detect goal-blocked separately
+    - Distinction: goal-blocked (obstacle on goal) vs stuck (no path exists)
+  - **Visual Indicators** (frontend/src/components/Grid2D.tsx):
+    - Yellow border (#eab308) for goal-blocked robots
+    - Different from: red (stuck), orange (collision), green (at goal)
+    - Clear visual hierarchy of robot states
+  - **Error Handling** (frontend/src/store/gameStore.ts):
+    - Backend sends error messages for invalid goal placement
+    - Frontend displays warnings for goal-related errors
+    - Removed optimistic logging - waits for backend confirmation
+- **Implementation Details**:
+  - Backend: Added `goal_blocked_robots` tracking in coordinator
+  - Web Interface: GameManager includes `is_goal_blocked` in robot state
+  - Frontend: Added `goalBlockedRobots` to store and Grid2D visualization
+  - Tests: 9 new tests for goal-blocked detection and obstacle-on-goal
+- **Validation Rules** (Frontend & Backend Synchronized):
+  - **Robot Placement**:
+    - ❌ Cannot place on obstacles
+    - ❌ Cannot place on other robots
+  - **Goal Placement**:
+    - ✅ Can place on any free space or robot position
+    - ❌ Cannot place on obstacles
+    - ❌ Multiple robots cannot share the same goal
+  - **Obstacle Placement**:
+    - ✅ Can place on goals (creates goal-blocked state)
+    - ❌ Cannot place on robot positions (validated in both frontend & backend)
+- **Benefits**:
+  - Consistent validation between frontend and backend
+  - No more unsolvable collision scenarios from duplicate goals
+  - Dynamic gameplay with temporary goal blocking
+  - Clear visual feedback for all robot states
+  - Better error messages for users
+  - All 138 tests passing
+
 ## Installation and Setup
 
 ```bash
@@ -531,7 +611,7 @@ from multi_robot_playground.utils.export_grid import export_to_visual_format
 ## Test-Driven Development
 
 This project follows TDD principles with comprehensive test coverage:
-- **108 passing tests** across all components (streamlined after pygame removal)
+- **142 passing tests** across all components
 - Test files for each major component
 - Visual test format for complex scenarios
 - Tests written BEFORE implementation
@@ -541,8 +621,13 @@ This project follows TDD principles with comprehensive test coverage:
   - Robot management: 13 tests - duplicate prevention, add/remove
   - World resizing: 17 tests - clean slate behavior
   - Placement validation: 11 tests - goal/obstacle validation
+  - Goal placement rules: 6 tests - duplicate prevention, obstacle validation
   - Stuck robot detection: 11 tests - detection, recovery, simulation continuity
+  - Goal-blocked detection: 5 tests - obstacle on goal, distinction from stuck
+  - Obstacle on goal: 4 tests - placement, dynamic changes
+  - Obstacle on robot validation: 4 tests - prevent obstacles on robots
   - Iterative collision detection: 8 tests - all collision types and cascades
+  - Collision detail tracking: 5 tests - detailed collision information
   - Color generation: 15 tests - dynamic colors for unlimited robots
 - Web interface:
   - WebSocket communication: 9 tests
@@ -576,9 +661,13 @@ This implementation demonstrates that multi-agent pathfinding doesn't require co
 - **Simplified Architecture**: Focused on web interface after pygame removal
 - **Iterative Collision System**: Elegant handling of complex collision cascades
 - **Modern Stack**: React + TypeScript frontend with FastAPI backend
-- **Comprehensive Testing**: 108 tests ensure reliability
+- **Comprehensive Testing**: 142 tests ensure reliability
 - **Developer Experience**: Simple `run_dev.sh` handles all complexity
 - **Frontend Stability**: Fixed crash issues and proper collision display
+- **Fully Synchronized Validation**: All placement rules consistent between frontend and backend
+- **Goal-Blocked State**: Clear distinction between stuck and goal-blocked robots
+- **Dynamic Obstacles**: Goals can be temporarily blocked by obstacles
+- **Robust Backend Validation**: Backend now validates all placement operations
 
 The key insight is understanding that robots are just dynamic obstacles, and D* Lite already knows how to handle obstacles efficiently. The modular architecture ensures that future interfaces can easily be added without duplicating core logic.
 

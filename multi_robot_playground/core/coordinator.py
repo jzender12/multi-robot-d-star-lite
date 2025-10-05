@@ -20,6 +20,7 @@ class MultiAgentCoordinator:
         self.collision_details = []  # List of collision detail dicts
         # Collision tracking - using iterative detection now
         self.stuck_robots = set()  # Track robots with no path to goal
+        self.goal_blocked_robots = set()  # Track robots with goal blocked by obstacle
 
     def add_robot(self, robot_id: str, start: Tuple[int, int],
                   goal: Tuple[int, int]) -> bool:
@@ -354,9 +355,9 @@ class MultiAgentCoordinator:
             # Recompute path
             success, reason = planner.compute_shortest_path()
 
-            # If no_path_exists, try a complete replan from scratch to escape local minima
-            if not success and reason == "no_path_exists (goal unreachable)":
-                print(f"Robot {robot_id}: no path found, attempting complete replan...")
+            # Try complete replan for any failure type (not just no_path_exists)
+            if not success:
+                print(f"Robot {robot_id}: Path computation failed ({reason}), attempting complete replan...")
                 # Reinitialize the planner completely
                 current_pos = self.current_positions[robot_id]
                 goal = self.goals[robot_id]
@@ -364,7 +365,7 @@ class MultiAgentCoordinator:
                 # Try again with fresh state
                 success, reason = planner.compute_shortest_path()
                 if success:
-                    print(f"Robot {robot_id}: Complete replan successful!")
+                    print(f"Robot {robot_id}: Complete replan successful after {reason} failure!")
                 else:
                     print(f"Robot {robot_id}: Complete replan also failed - {reason}")
 
@@ -373,8 +374,23 @@ class MultiAgentCoordinator:
                 if new_path:
                     self.paths[robot_id] = new_path
                 else:
-                    print(f"Warning: Failed to extract path for robot {robot_id}")
-                    self.paths[robot_id] = []
+                    # Path extraction failed despite successful compute - try complete replan
+                    print(f"Warning: Failed to extract path for robot {robot_id}, attempting complete replan...")
+                    current_pos = self.current_positions[robot_id]
+                    goal = self.goals[robot_id]
+                    planner.initialize(current_pos, goal)
+                    success, reason = planner.compute_shortest_path()
+                    if success:
+                        new_path = planner.get_path()
+                        if new_path:
+                            print(f"Robot {robot_id}: Path extraction successful after replan!")
+                            self.paths[robot_id] = new_path
+                        else:
+                            print(f"Warning: Path extraction still failed for robot {robot_id} after replan")
+                            self.paths[robot_id] = []
+                    else:
+                        print(f"Warning: Replan failed for robot {robot_id} - {reason}")
+                        self.paths[robot_id] = []
             else:
                 print(f"Warning: No path found for robot {robot_id} - Reason: {reason}")
                 self.paths[robot_id] = []
@@ -391,10 +407,13 @@ class MultiAgentCoordinator:
     def detect_stuck_robots(self) -> set:
         """
         Detect robots that are stuck (no path to goal and not at goal).
+        Also detect robots with goal-blocked (goal has obstacle).
         Returns a set of stuck robot IDs.
-        Updates self.stuck_robots instance variable.
+        Updates self.stuck_robots and self.goal_blocked_robots instance variables.
         """
         stuck = set()
+        goal_blocked = set()
+
         for robot_id in self.planners:
             current_pos = self.current_positions[robot_id]
             goal_pos = self.goals[robot_id]
@@ -403,12 +422,19 @@ class MultiAgentCoordinator:
             if current_pos == goal_pos:
                 continue
 
+            # Check if goal is blocked by obstacle
+            if goal_pos in self.world.static_obstacles:
+                goal_blocked.add(robot_id)
+                stuck.add(robot_id)  # Also add to stuck for backward compatibility
+                continue
+
             # If no path, empty path, or path only contains current position, robot is stuck
             path = self.paths.get(robot_id, [])
             if not path or len(path) == 0 or (len(path) == 1 and path[0] == current_pos):
                 stuck.add(robot_id)
 
         self.stuck_robots = stuck
+        self.goal_blocked_robots = goal_blocked
         return stuck
 
     def step_simulation(self) -> Tuple[bool, Optional[Tuple[str, str, str]], List[str], Dict[str, str]]:
@@ -484,17 +510,25 @@ class MultiAgentCoordinator:
         # Return the collision detected this step (if any)
         return should_continue, collision_detected, stuck_robots, self.collision_blocked_robots
 
-    def add_dynamic_obstacle(self, x: int, y: int):
+    def add_dynamic_obstacle(self, x: int, y: int) -> bool:
         """
         Add an obstacle during execution and replan affected robots.
         This demonstrates D* Lite's incremental replanning capability.
+        Returns True if successful, False if position is invalid.
         """
+        # Check if position has a robot
+        for robot_id, pos in self.current_positions.items():
+            if pos == (x, y):
+                print(f"Cannot place obstacle at {(x,y)}: Robot {robot_id} is there")
+                return False
+
         self.world.add_obstacle(x, y)
 
         # Pass the changed cell so D* Lite can update properly
         self.recompute_paths(changed_cells={(x, y)})
 
         # Collisions will be recalculated on next step with new paths
+        return True
 
     def remove_dynamic_obstacle(self, x: int, y: int):
         """
